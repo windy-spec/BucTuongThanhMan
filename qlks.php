@@ -1,9 +1,6 @@
 <?php
 // --- PHẦN LOGIC PHP ---
 // Chúng ta "giả lập" (fake) dữ liệu ở đây
-// Bình thường, dữ liệu này sẽ được lấy từ cơ sở dữ liệu (database)
-
-// 1. Dữ liệu giả lập cho các phòng
 $rooms = [
     ['id' => 101, 'type' => 'Standard', 'status' => 'Available'],
     ['id' => 102, 'type' => 'Standard', 'status' => 'Occupied'],
@@ -15,7 +12,6 @@ $rooms = [
     ['id' => 302, 'type' => 'Suite',    'status' => 'Occupied'],
 ];
 
-// 2. Dữ liệu giả lập cho các lượt đặt phòng (booking)
 $bookings = [
     ['guest_name' => 'Nguyễn Văn A', 'room_id' => 102, 'check_in' => '2025-11-15', 'check_out' => '2025-11-17'],
     ['guest_name' => 'Trần Thị B', 'room_id' => 202, 'check_in' => '2025-11-14', 'check_out' => '2025-11-16'],
@@ -50,46 +46,34 @@ function getStatusText($status) {
     <title>Bảng điều khiển - Quản lý Khách sạn</title>
     
     <style>
-        /* Cài đặt chung */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f4f7f6;
             margin: 0;
             color: #333;
         }
-
-        /* Header */
         header.main-header {
-            background-color: #004a99; /* Màu xanh đậm của khách sạn */
+            background-color: #004a99;
             color: white;
             padding: 20px;
             text-align: center;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-
-        /* Vùng nội dung chính */
         main.container {
             max-width: 1200px;
-            margin: 20px auto; /* Căn giữa */
+            margin: 20px auto;
             padding: 20px;
         }
-
-        /* Tiêu đề của các mục */
         h2 {
             color: #004a99;
             border-bottom: 2px solid #e0e0e0;
             padding-bottom: 10px;
         }
-
-        /* Lưới hiển thị các phòng */
         .room-grid {
             display: grid;
-            /* Tự động chia cột, mỗi cột tối thiểu 150px */
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px; /* Khoảng cách giữa các phòng */
+            gap: 15px;
         }
-
-        /* Thẻ hiển thị từng phòng */
         .room-card {
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -102,19 +86,16 @@ function getStatusText($status) {
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-
         .room-card .room-number {
             font-size: 1.5rem;
             font-weight: bold;
             color: #004a99;
         }
-        
         .room-card .room-type {
             font-size: 0.9rem;
             color: #666;
             margin-top: 5px;
         }
-
         .room-card .room-status {
             font-size: 0.9rem;
             font-weight: bold;
@@ -122,8 +103,6 @@ function getStatusText($status) {
             padding: 5px;
             border-radius: 4px;
         }
-
-        /* Màu sắc cho các trạng thái */
         .status-available {
             background-color: #e0f8e0;
             border: 1px solid #00a000;
@@ -139,11 +118,9 @@ function getStatusText($status) {
             border: 1px solid #e0c000;
             color: #806000;
         }
-        
-        /* Bảng hiển thị danh sách đặt phòng */
         .booking-table {
             width: 100%;
-            border-collapse: collapse; /* Gộp viền bảng */
+            border-collapse: collapse;
             margin-top: 20px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
@@ -156,7 +133,7 @@ function getStatusText($status) {
             background-color: #f0f0f0;
         }
         .booking-table tr:nth-child(even) {
-            background-color: #f9f9f9; /* Màu xen kẽ cho dễ đọc */
+            background-color: #f9f9f9;
         }
     </style>
 </head>
@@ -173,15 +150,16 @@ function getStatusText($status) {
             
             <div class="room-grid">
                 <?php
-                // Dùng vòng lặp foreach để "vẽ" ra từng phòng
                 foreach ($rooms as $room) {
                     $status_class = getStatusClass($room['status']);
                     $status_text = getStatusText($room['status']);
                     
-                    echo "<div class'room-card'>";
-                    echo "    <div class='room-number'>Phòng " . htmlspecialchars($room['id']) . "</div>";
-                    echo "    <div class='room-type'>" . htmlspecialchars($room['type']) . "</div>";
-                    echo "    <div class'room-status " . $status_class . "'>" . $status_text . "</div>";
+                    // LỖI ĐÃ SỬA: class'...' thành class="..."
+                    echo "<div class=\"room-card\">"; 
+                    echo "    <div class=\"room-number\">Phòng " . htmlspecialchars($room['id']) . "</div>";
+                    echo "    <div class=\"room-type\">" . htmlspecialchars($room['type']) . "</div>";
+                    // LỖI ĐÃ SỬA: class'...' thành class="..."
+                    echo "    <div class=\"room-status " . $status_class . "\">" . $status_text . "</div>";
                     echo "</div>";
                 }
                 ?>
@@ -202,17 +180,16 @@ function getStatusText($status) {
                 </thead>
                 <tbody>
                     <?php
-                    // Dùng vòng lặp foreach để "vẽ" ra từng hàng
                     foreach ($bookings as $booking) {
                         echo "<tr>";
                         echo "    <td>" . htmlspecialchars($booking['guest_name']) . "</td>";
-                        echo "    <td>"D" . htmlspecialchars($booking['room_id']) . "</td>";
+                        // LỖI ĐÃ SỬA: Xóa "D" bị thừa
+                        echo "    <td>" . htmlspecialchars($booking['room_id']) . "</td>";
                         echo "    <td>" . htmlspecialchars($booking['check_in']) . "</td>";
                         echo "    <td>" . htmlspecialchars($booking['check_out']) . "</td>";
                         echo "</tr>";
                     }
 
-                    // Hiển thị nếu không có booking nào
                     if (empty($bookings)) {
                         echo "<tr><td colspan='4'>Không có lượt đặt phòng nào hiện tại.</td></tr>";
                     }

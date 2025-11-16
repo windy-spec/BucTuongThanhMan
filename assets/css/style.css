@@ -1,0 +1,44 @@
+/* =======================================
+   STYLE.CSS - CÁC ĐỊNH DẠNG TÙY CHỈNH
+   Project: QLKS
+   ======================================= */
+
+/* 1. ĐỊNH DẠNG CHUNG */
+body {
+  background-color: #f7f9fc; /* Màu nền nhẹ cho toàn bộ trang */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 2. TÙY CHỈNH THÀNH PHẦN CHÍNH */
+/* Thẻ main-content đã được định nghĩa trong header_admin.php */
+.main-content {
+  padding-top: 30px;
+  padding-bottom: 30px;
+}
+
+/* 3. TÙY CHỈNH CARD THỐNG KÊ (Dashboard) */
+.card {
+  border: none;
+  border-left: 5px solid transparent;
+  transition: all 0.3s ease-in-out;
+}
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 4. TÙY CHỈNH BẢNG (Table) */
+.table-responsive table {
+  font-size: 0.95rem;
+}
+.table-responsive thead tr th {
+  background-color: #e9ecef;
+}
+
+/* 5. TÙY CHỈNH THEO TRẠNG THÁI (Nếu cần ghi đè CSS của dashboard.php) */
+/* Nếu bạn muốn chuyển CSS trong <style> của dashboard.php ra đây, hãy đặt chúng ở dưới */
+
+/*
+.room-available { background-color: #28a945; }
+.room-occupied { background-color: #dc3545; }
+...
+*/

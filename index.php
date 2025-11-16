@@ -170,17 +170,7 @@
             <h2 class="section-title">Trung tâm Điều hành</h2>
             <div class="row g-4 justify-content-center">
                 
-                <div class="col-lg-6 col-md-12 card-module main-module">
-                    <a href="<?php echo BASE_URL; ?>qlks/index.php" class="card-link">
-                        <div class="card p-4 text-center shadow">
-                            <div class="card-body">
-                                <div class="card-icon"><i class="fa fa-hotel"></i></div>
-                                <h5 class="card-title fs-3 fw-semibold">Quản lý Khách sạn</h5>
-                                <p class="card-text fs-5">Truy cập dashboard trung tâm, quản lý phòng, thống kê đặt phòng và các nghiệp vụ khác.</p>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+                
 
                 <div class="col-lg-6 col-md-12">
                     <div class="row g-4">

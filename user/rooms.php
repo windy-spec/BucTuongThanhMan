@@ -22,6 +22,8 @@ unset($_SESSION['message']);
 include_once('../layout/user/header_user.php');
 ?>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
     <div class="container mt-5">
         <h1 class="mb-4"><i class="fa fa-bed"></i> Chọn Phòng & Đặt</h1>
 
@@ -77,16 +79,17 @@ include_once('../layout/user/header_user.php');
               <div class="modal-body">
                 <input type="hidden" name="action" value="create_booking">
                 <input type="hidden" name="room_id" id="modal_room_id">
-                <input type="hidden" name="total_price" id="modal_total_price"> <p class="text-muted">Giá phòng: <span id="modal_room_price_display" class="fw-bold text-danger"></span> / đêm</p>
+                <input type="hidden" name="total_price" id="modal_total_price"> 
+                <p class="text-muted">Giá phòng: <span id="modal_room_price_display" class="fw-bold text-danger"></span> / đêm</p>
 
                 <div class="mb-3">
                     <label for="check_in_date" class="form-label fw-semibold">Ngày Check-in:</label>
-                    <input type="date" class="form-control" id="check_in_date" name="check_in_date" required>
+                    <input type="text" class="form-control bg-white" id="check_in_date" name="check_in_date" placeholder="Chọn ngày nhận phòng" required>
                 </div>
                 
                 <div class="mb-3">
                     <label for="check_out_date" class="form-label fw-semibold">Ngày Check-out:</label>
-                    <input type="date" class="form-control" id="check_out_date" name="check_out_date" required>
+                    <input type="text" class="form-control bg-white" id="check_out_date" name="check_out_date" placeholder="Chọn ngày trả phòng" required>
                 </div>
                 
                 <div class="alert alert-info mt-3">
@@ -101,58 +104,87 @@ include_once('../layout/user/header_user.php');
         </div>
       </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var bookingModal = document.getElementById('bookingModal');
-            var currentRoomPrice = 0;
+    document.addEventListener('DOMContentLoaded', function () {
+        var bookingModal = document.getElementById('bookingModal');
+        var currentRoomPrice = 0;
 
-            // Hàm tính toán tổng giá
-            function calculateTotalPrice() {
-                var checkIn = document.getElementById('check_in_date').value;
-                var checkOut = document.getElementById('check_out_date').value;
-
-                if (checkIn && checkOut) {
-                    var date1 = new Date(checkIn);
-                    var date2 = new Date(checkOut);
-                    var timeDiff = date2.getTime() - date1.getTime();
-                    var dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)); // Số đêm
-
-                    if (dayDiff > 0) {
-                        var totalPrice = dayDiff * currentRoomPrice;
-                        
-                        // Cập nhật giá trị hiển thị và trường ẩn
-                        document.getElementById('total_price_calculated').textContent = new Intl.NumberFormat('vi-VN').format(totalPrice) + ' VNĐ';
-                        document.getElementById('modal_total_price').value = totalPrice.toFixed(2);
-                        return;
-                    }
-                }
-                document.getElementById('total_price_calculated').textContent = '0 VNĐ';
-                document.getElementById('modal_total_price').value = 0;
+        // --- 1. CẤU HÌNH FLATPICKR (LỊCH dd/mm/yyyy) ---
+        
+        var fpCheckIn = flatpickr("#check_in_date", {
+            locale: "vn",             
+            dateFormat: "Y-m-d",      
+            altInput: true,           
+            altFormat: "d/m/Y",       
+            // minDate: "today",      <-- ĐÃ XÓA DÒNG NÀY (Để hiện ngày quá khứ)
+            onChange: function(selectedDates, dateStr, instance) {
+                // Logic cũ: Khi chọn Check-in thì Check-out phải lớn hơn hoặc bằng
+                // Chúng ta vẫn giữ logic này để tránh chọn ngày trả trước ngày nhận
+                fpCheckOut.set('minDate', dateStr); 
+                calculateTotalPrice();
             }
-
-            // Gán sự kiện cho trường ngày
-            document.getElementById('check_in_date').addEventListener('change', calculateTotalPrice);
-            document.getElementById('check_out_date').addEventListener('change', calculateTotalPrice);
-
-            // Xử lý khi Modal mở ra
-            bookingModal.addEventListener('show.bs.modal', function (event) {
-                var button = event.relatedTarget; 
-                var roomId = button.getAttribute('data-room-id');
-                var roomNumber = button.getAttribute('data-room-number');
-                var roomPrice = parseFloat(button.getAttribute('data-room-price'));
-
-                currentRoomPrice = roomPrice;
-
-                // Điền dữ liệu vào Modal
-                document.getElementById('modal_room_number').textContent = roomNumber;
-                document.getElementById('modal_room_id').value = roomId;
-                document.getElementById('modal_room_price_display').textContent = new Intl.NumberFormat('vi-VN').format(roomPrice);
-
-                calculateTotalPrice(); // Tính toán lại khi modal mở
-            });
         });
-    </script>
 
+        var fpCheckOut = flatpickr("#check_out_date", {
+            locale: "vn",
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            // minDate: "today",      <-- ĐÃ XÓA DÒNG NÀY
+            onChange: function(selectedDates, dateStr, instance) {
+                calculateTotalPrice();
+            }
+        });
+
+        // --- 2. HÀM TÍNH TOÁN GIÁ (Giữ nguyên) ---
+        function calculateTotalPrice() {
+            var checkIn = document.getElementById('check_in_date').value;
+            var checkOut = document.getElementById('check_out_date').value;
+
+            if (checkIn && checkOut) {
+                var date1 = new Date(checkIn);
+                var date2 = new Date(checkOut);
+                var timeDiff = date2.getTime() - date1.getTime();
+                var dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
+
+                if (dayDiff > 0) {
+                    var totalPrice = dayDiff * currentRoomPrice;
+                    document.getElementById('total_price_calculated').textContent = new Intl.NumberFormat('vi-VN').format(totalPrice) + ' VNĐ';
+                    document.getElementById('modal_total_price').value = totalPrice;
+                    return;
+                }
+            }
+            document.getElementById('total_price_calculated').textContent = '0 VNĐ';
+            document.getElementById('modal_total_price').value = 0;
+        }
+
+        // --- 3. XỬ LÝ KHI MỞ MODAL (Giữ nguyên) ---
+        bookingModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget; 
+            var roomId = button.getAttribute('data-room-id');
+            var roomNumber = button.getAttribute('data-room-number');
+            var roomPrice = parseFloat(button.getAttribute('data-room-price'));
+
+            currentRoomPrice = roomPrice;
+
+            document.getElementById('modal_room_number').textContent = roomNumber;
+            document.getElementById('modal_room_id').value = roomId;
+            document.getElementById('modal_room_price_display').textContent = new Intl.NumberFormat('vi-VN').format(roomPrice);
+
+            // Reset lịch
+            fpCheckIn.clear();
+            fpCheckOut.clear();
+            document.getElementById('total_price_calculated').textContent = '0 VNĐ';
+        });
+    });
+    
+    // ... (Đoạn code hiển thị Popup SweetAlert giữ nguyên) ...
+</script>
 
 <?php
 // GỌI FOOTER

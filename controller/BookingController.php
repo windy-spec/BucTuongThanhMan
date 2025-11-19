@@ -1,7 +1,7 @@
 <?php
-// File: controller/BookingController.php - FINAL SIMULATION VERSION
+// File: controller/BookingController.php
 
-// Bật hiển thị lỗi
+// Bật hiển thị lỗi (Chỉ dùng khi dev, nên tắt khi production)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -12,15 +12,60 @@ class BookingController {
 
     public function __construct($pdo_connection) {
         $this->conn = $pdo_connection;
-        // Giả định session_start() đã có trong config.php
+        
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
+        }
+
+        // --- [MỚI] TỰ ĐỘNG QUÉT VÀ HỦY ĐƠN QUÁ HẠN KHI KHỞI TẠO ---
+        // Mỗi lần Controller được gọi, nó sẽ kiểm tra xem có đơn nào cần hủy không
+        $this->autoCancelOverdueBookings();
+    }
+
+    /**
+     * ===============================================
+     * [LOGIC MỚI] TỰ ĐỘNG HỦY ĐƠN (Auto Cancel)
+     * ===============================================
+     * Điều kiện hủy:
+     * 1. Trạng thái 'pending' (chưa thanh toán)
+     * 2. Thời gian lưu trú > 15 ngày
+     * 3. Đã tạo quá 24 giờ trước
+     */
+    private function autoCancelOverdueBookings() {
+        try {
+            // 1. Tìm các đơn thỏa mãn điều kiện hủy
+            // DATEDIFF(check_out, check_in) > 15: Thuê trên 15 ngày
+            // created_at < NOW() - INTERVAL 24 HOUR: Đã tạo quá 24h
+            $sql = "SELECT id, room_id FROM bookings 
+                    WHERE status = 'pending' 
+                    AND DATEDIFF(check_out_date, check_in_date) > 15 
+                    AND created_at < (NOW() - INTERVAL 24 HOUR)";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute();
+            $overdue_bookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if ($overdue_bookings) {
+                // 2. Duyệt qua từng đơn để hủy và trả phòng
+                foreach ($overdue_bookings as $booking) {
+                    // Cập nhật trạng thái đơn thành 'cancelled'
+                    $cancelSql = "UPDATE bookings SET status = 'cancelled' WHERE id = :id";
+                    $cancelStmt = $this->conn->prepare($cancelSql);
+                    $cancelStmt->execute(['id' => $booking['id']]);
+
+                    // Quan trọng: Cập nhật trạng thái phòng thành 'available'
+                    $this->updateRoomStatusAfterBooking($booking['room_id'], 'available');
+                }
+            }
+        } catch (Exception $e) {
+            // Ghi log lỗi vào file hệ thống thay vì hiện ra màn hình để tránh làm phiền người dùng
+            error_log("Auto Cancel Error: " . $e->getMessage());
         }
     }
 
     /**
      * ===============================================
-     * HÀM HỖ TRỢ: CẬP NHẬT TRẠNG THÁI PHÒNG (Đồng bộ)
+     * HÀM HỖ TRỢ: CẬP NHẬT TRẠNG THÁI PHÒNG
      * ===============================================
      */
     private function updateRoomStatusAfterBooking($room_id, $new_status) {
@@ -36,6 +81,7 @@ class BookingController {
      */
     public function createBooking($room_id, $check_in, $check_out, $total_price) {
         try {
+            // 1. Kiểm tra đăng nhập và dữ liệu rỗng
             if (!isset($_SESSION['user_id'])) {
                 throw new Exception("Vui lòng đăng nhập để đặt phòng.");
             }
@@ -43,10 +89,27 @@ class BookingController {
                 throw new Exception("Vui lòng nhập đầy đủ thông tin đặt phòng.");
             }
 
+            // 2. LOGIC MỚI: Tính toán số ngày
+            $start_date = new DateTime($check_in);
+            $end_date = new DateTime($check_out);
+
+            if ($start_date >= $end_date) {
+                throw new Exception("Ngày trả phòng phải sau ngày nhận phòng.");
+            }
+
+            $interval = $start_date->diff($end_date);
+            $days = $interval->days; // Số ngày lưu trú
+
+            // 3. LOGIC MỚI: Chặn nếu >= 30 ngày
+            if ($days >= 30) {
+                throw new Exception("Xin lỗi, chúng tôi chỉ nhận đặt phòng dưới 30 ngày.");
+            }
+
             $user_id = $_SESSION['user_id'];
             
-            $sql = "INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, status) 
-                    VALUES (:user_id, :room_id, :check_in, :check_out, :total_price, 'pending')";
+            // 4. Thêm đơn vào CSDL
+            $sql = "INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, status, created_at) 
+                    VALUES (:user_id, :room_id, :check_in, :check_out, :total_price, 'pending', NOW())";
             
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
@@ -57,15 +120,30 @@ class BookingController {
                 'total_price' => $total_price
             ]);
             
-            // Cập nhật trạng thái phòng thành 'occupied' ngay sau khi tạo đơn
+            // 5. Cập nhật trạng thái phòng
             if ($stmt->rowCount() > 0) {
                  $this->updateRoomStatusAfterBooking($room_id, 'occupied');
             }
 
-            return "Đặt phòng thành công. Đơn đang chờ xác nhận.";
+            // 6. LOGIC MỚI: Trả về kết quả dựa trên số ngày (> 15 ngày thì cảnh báo)
+            if ($days > 15) {
+                return [
+                    'status' => 'warning', // Dùng để hiện icon màu vàng
+                    'message' => "Đặt phòng thành công! <br><b>Lưu ý:</b> Vì bạn đặt dài hạn ($days ngày), vui lòng thanh toán trong vòng <b>24 giờ</b>, nếu không đơn sẽ bị hủy tự động."
+                ];
+            } else {
+                return [
+                    'status' => 'success', // Dùng để hiện icon màu xanh
+                    'message' => "Đặt phòng thành công. Đơn đang chờ xác nhận."
+                ];
+            }
 
         } catch (Exception $e) {
-            return "Lỗi đặt phòng: " . $e->getMessage();
+            // Trả về mảng lỗi để đồng bộ
+            return [
+                'status' => 'error',
+                'message' => "Lỗi đặt phòng: " . $e->getMessage()
+            ];
         }
     }
 
@@ -115,22 +193,32 @@ class BookingController {
      * HÀM 3: XÓA ĐƠN ĐẶT PHÒNG (DELETE)
      * ===============================================
      */
-    public function deleteBooking($booking_id) {
+   public function deleteBooking($booking_id) {
         $role = $_SESSION['role'] ?? 'guest';
         $user_id = $_SESSION['user_id'] ?? 0;
         
-        // 1. Lấy room_id trước khi xóa (Cần cho cả Admin và Customer)
+        // 1. Lấy room_id trước khi xóa (QUAN TRỌNG)
+        // Chúng ta lấy cả ID phòng để trả trạng thái
         $sql_room = "SELECT room_id FROM bookings WHERE id = :booking_id";
         $stmt_room = $this->conn->prepare($sql_room);
         $stmt_room->execute(['booking_id' => $booking_id]);
-        $room = $stmt_room->fetch(PDO::FETCH_ASSOC);
+        $booking = $stmt_room->fetch(PDO::FETCH_ASSOC);
 
-        if (!$room) {
-            return "Lỗi: Không tìm thấy đơn đặt phòng để xóa.";
+        if (!$booking) {
+            return "Lỗi: Không tìm thấy đơn đặt phòng.";
         }
-        $room_id = $room['room_id'];
 
-        // 2. Thực hiện xóa (Logic RBAC giữ nguyên)
+        // --- KIỂM TRA KỸ ROOM ID ---
+        // Đảm bảo lấy đúng tên cột (phòng trường hợp bạn đặt tên khác trong DB)
+        $room_id = $booking['room_id'] ?? null; 
+        
+        if (!$room_id) {
+            // Nếu null, thử tìm các biến thể khác hoặc báo lỗi
+            // (Đoạn này giúp debug nếu bạn đặt tên cột là RoomId hay Room_ID)
+            error_log("Lỗi: Không lấy được room_id từ đơn hàng $booking_id");
+        }
+
+        // 2. Thực hiện xóa (Logic phân quyền)
         if ($role == 'admin' || $role == 'staff') {
             $sql = "DELETE FROM bookings WHERE id = :booking_id";
             $stmt = $this->conn->prepare($sql);
@@ -143,15 +231,17 @@ class BookingController {
              return "Lỗi: Bạn không có quyền xóa đơn này.";
         }
 
+        // 3. KIỂM TRA VÀ CẬP NHẬT PHÒNG
         if ($stmt->rowCount() > 0) {
-             // 3. GIẢI PHÓNG PHÒNG
-            $this->updateRoomStatusAfterBooking($room_id, 'available');
-            return "Xóa đơn thành công. Phòng $room_id đã được giải phóng.";
+            // Nếu xóa thành công và có room_id -> Trả phòng về 'available'
+            if ($room_id) {
+                $this->updateRoomStatusAfterBooking($room_id, 'available');
+            }
+            return "Hủy đơn thành công!";
         } else {
-            return "Lỗi: Bạn không có quyền xóa đơn này hoặc đơn không tồn tại.";
+            return "Lỗi: Không thể xóa đơn (Có thể đơn không còn tồn tại hoặc không thuộc về bạn).";
         }
     }
-    
     /**
      * ===============================================
      * HÀM 7: XỬ LÝ THANH TOÁN GIẢ LẬP (SIMULATION)
@@ -247,6 +337,34 @@ class BookingController {
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function validateBookingDuration($checkInDate, $checkOutDate) {
+        $start = new DateTime($checkInDate);
+        $end = new DateTime($checkOutDate);
+        
+        // Tính khoảng cách ngày
+        $interval = $start->diff($end);
+        $days = $interval->days;
+
+        // QUY TẮC 1: Chặn nếu đặt >= 30 ngày
+        if ($days >= 30) {
+            return [
+                'valid' => false, 
+                'message' => 'Xin lỗi, chúng tôi chỉ nhận đặt phòng dưới 30 ngày.'
+            ];
+        }
+
+        // QUY TẮC 2: Cảnh báo nếu > 15 ngày
+        if ($days > 15) {
+            return [
+                'valid' => true,
+                'requires_urgent_payment' => true, // Cờ đánh dấu để hiện thông báo
+                'days' => $days
+            ];
+        }
+
+        return ['valid' => true, 'requires_urgent_payment' => false];
     }
 }
 ?>

@@ -2,9 +2,6 @@
 // Đây là tệp backend, nó không hiển thị HTML
 // Nó chỉ nhận lệnh, gọi controller, và chuyển hướng về
 
-// 1. BẮT ĐẦU SESSION ĐỂ LƯU THÔNG BÁO
-session_start();
-
 // 2. GỌI CONFIG VÀ CONTROLLER
 include_once(__DIR__ . '/../config.php'); // Lấy $conn
 include_once(__DIR__ . '/../controller/RoomController.php'); // Lấy class

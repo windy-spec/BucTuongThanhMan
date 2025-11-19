@@ -1,52 +1,40 @@
 <?php
-// BƯỚC 1: CỔNG BẢO VỆ
+// FILE: user/my_bookings.php
+
+// 1. CỔNG BẢO VỆ & CONFIG
 include_once('auth_customer.php'); 
-// $customer_id và $customer_username được lấy từ auth_customer.php
-
-// BƯỚC 2: KHAI BÁO BIẾN LAYOUT
-$page_title = "Đơn Đặt Phòng Của Tôi";
-$module = 'my_bookings'; 
-
-// 3. GỌI CONFIG VÀ CONTROLLER
 include_once(__DIR__ . '/../config.php');
 include_once(__DIR__ . '/../controller/BookingController.php'); 
 
-// 4. KHỞI TẠO VÀ LẤY DỮ LIỆU THẬT
-$bookingController = new BookingController($conn);
+$page_title = "Đơn Đặt Phòng Của Tôi";
+$module = 'my_bookings'; 
 
-// Lấy danh sách đặt phòng CỦA NGƯỜI DÙNG NÀY (sử dụng $customer_id từ auth_customer.php)
+// 2. LẤY DỮ LIỆU
+$bookingController = new BookingController($conn);
 $my_bookings = $bookingController->getUserBookings($customer_id);
 
-// 5. LẤY THÔNG BÁO (nếu có) TỪ TỆP PROCESS
-$message = isset($_SESSION['message']) ? $_SESSION['message'] : '';
-unset($_SESSION['message']); 
-
-// 6. GỌI HEADER
+// 3. GỌI HEADER
 include_once('../layout/user/header_user.php');
 ?>
 
-    <div class="container mt-5">
-        <h1 class="mb-4"><i class="fa fa-book"></i> Đơn Đặt Phòng Của Tôi</h1>
-        <p class="text-muted">Chào mừng, **<?php echo htmlspecialchars($customer_username); ?>**.</p>
-        
-        <?php if ($message): ?>
-            <div class="alert <?php echo strpos($message, 'Lỗi') !== false ? 'alert-danger' : 'alert-success'; ?> alert-dismissible fade show" role="alert">
-                <?php echo $message; ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php endif; ?>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0">Danh sách đơn đã đặt</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-hover table-bordered">
-                    <thead class="table-dark">
+<div class="container mt-5 mb-5">
+    <h2 class="mb-4 text-primary"><i class="fa fa-history"></i> Lịch Sử Đặt Phòng</h2>
+    <p class="text-muted">Xin chào, <strong><?php echo htmlspecialchars($customer_username); ?></strong>. Dưới đây là danh sách các đơn đặt phòng của bạn.</p>
+    
+    <div class="card shadow border-0">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0 text-secondary">Danh sách đơn hàng</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
+                            <th class="ps-4">Mã đơn</th>
                             <th>Phòng</th>
-                            <th>Check-in</th>
-                            <th>Check-out</th>
+                            <th>Thời gian lưu trú</th>
                             <th>Tổng tiền</th>
                             <th>Trạng thái</th>
                             <th>Hành động</th>
@@ -55,69 +43,81 @@ include_once('../layout/user/header_user.php');
                     <tbody>
                         <?php if (empty($my_bookings)): ?>
                             <tr>
-                                <td colspan="6" class="text-center">Bạn chưa có đơn đặt phòng nào. 
-                                    <a href="rooms.php" class="text-primary fw-bold">Đặt phòng ngay!</a>
+                                <td colspan="6" class="text-center py-5">
+                                    <div class="text-muted mb-3"><i class="fa fa-inbox fa-3x"></i></div>
+                                    <h6 class="text-muted">Bạn chưa có đơn đặt phòng nào.</h6>
+                                    <a href="../index.php" class="btn btn-primary mt-2">
+                                        <i class="fa fa-search"></i> Tìm phòng ngay
+                                    </a>
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($my_bookings as $booking): ?>
                                 <tr>
-                                    <td class="fw-bold"><?php echo htmlspecialchars($booking['room_number']); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($booking['check_in_date'])); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($booking['check_out_date'])); ?></td>
-                                    <td><?php echo number_format($booking['total_price'], 0, ',', '.'); ?> VNĐ</td>
+                                    <td class="ps-4 fw-bold">#<?php echo $booking['id']; ?></td>
+                                    <td class="text-primary fw-bold">
+                                        <?php echo htmlspecialchars($booking['room_number']); ?>
+                                    </td>
                                     <td>
-                                        <?php 
-                                            $status = $booking['status'];
-                                            $badge_class = 'bg-secondary';
-                                            if ($status == 'confirmed') $badge_class = 'bg-primary';
-                                            if ($status == 'pending') $badge_class = 'bg-warning text-dark';
-                                            if ($status == 'checked_in') $badge_class = 'bg-success';
-                                            if ($status == 'cancelled') $badge_class = 'bg-danger';
-                                        ?>
-                                        <span class="badge <?php echo $badge_class; ?>"><?php echo ucfirst($status); ?></span>
+                                        <small class="text-muted">Nhận:</small> <strong><?php echo date('d/m/Y', strtotime($booking['check_in_date'])); ?></strong><br>
+                                        <small class="text-muted">Trả:&nbsp;&nbsp;&nbsp;</small> <strong><?php echo date('d/m/Y', strtotime($booking['check_out_date'])); ?></strong>
+                                    </td>
+                                    <td class="fw-bold text-danger">
+                                        <?php echo number_format($booking['total_price'], 0, ',', '.'); ?> đ
                                     </td>
                                     <td>
                                         <?php 
-                                            $status = $booking['status'];
-                                            if ($status == 'pending'): // Chỉ hiện nút thanh toán khi đơn đang chờ
+                                            $st = $booking['status'];
+                                            $badgeClass = 'bg-secondary';
+                                            $statusText = 'Không rõ';
+                                            
+                                            switch ($st) {
+                                                case 'pending':
+                                                    $badgeClass = 'bg-warning text-dark';
+                                                    $statusText = 'Chờ thanh toán';
+                                                    break;
+                                                case 'confirmed':
+                                                    $badgeClass = 'bg-primary';
+                                                    $statusText = 'Đã xác nhận';
+                                                    break;
+                                                case 'checked_in':
+                                                    $badgeClass = 'bg-success';
+                                                    $statusText = 'Đang ở';
+                                                    break;
+                                                case 'checked_out':
+                                                    $badgeClass = 'bg-info text-dark';
+                                                    $statusText = 'Đã trả phòng';
+                                                    break;
+                                                case 'cancelled':
+                                                    $badgeClass = 'bg-danger';
+                                                    $statusText = 'Đã hủy';
+                                                    break;
+                                            }
                                         ?>
-                                        
-                                            <form action="booking_process.php" method="POST" style="display:inline;" class="me-2">
+                                        <span class="badge <?php echo $badgeClass; ?> rounded-pill px-3 py-2">
+                                            <?php echo $statusText; ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($st == 'pending'): ?>
+                                            <form action="booking_process.php" method="POST" style="display:inline-block;">
                                                 <input type="hidden" name="action" value="process_payment_simulate">
                                                 <input type="hidden" name="booking_id" value="<?php echo $booking['id']; ?>">
                                                 <input type="hidden" name="amount" value="<?php echo $booking['total_price']; ?>"> 
-
-                                                <button type="submit" class="btn btn-warning btn-sm">
-                                                    <i class="fa fa-credit-card me-1"></i> Thanh toán 
+                                                <button type="submit" class="btn btn-warning btn-sm shadow-sm" title="Thanh toán ngay">
+                                                    <i class="fa fa-credit-card"></i> Trả tiền
                                                 </button>
                                             </form>
+                                        <?php endif; ?>
 
-                                            <form action="booking_process.php" method="POST" onsubmit="return confirm('Bạn có chắc muốn hủy đơn này?');" style="display:inline;">
+                                        <?php if ($st == 'pending' || $st == 'confirmed'): ?>
+                                            <form action="booking_process.php" method="POST" style="display:inline-block;" class="frm-cancel">
                                                 <input type="hidden" name="action" value="delete_booking">
                                                 <input type="hidden" name="booking_id" value="<?php echo $booking['id']; ?>">
-                                                <button type="submit" class="btn btn-danger btn-sm">
-                                                    <i class="fa fa-trash"></i> Hủy
+                                                <button type="button" class="btn btn-outline-danger btn-sm btn-cancel" title="Hủy đơn">
+                                                    <i class="fa fa-trash"></i>
                                                 </button>
                                             </form>
-
-                                        <?php elseif ($status == 'confirmed'): ?>
-                                            <span class="badge bg-primary"><i class="fa fa-check"></i> Đã xác nhận</span>
-                                            <form action="booking_process.php" method="POST" onsubmit="return confirm('Đơn đã xác nhận. Bạn có chắc muốn hủy?');" style="display:inline;">
-                                                <input type="hidden" name="action" value="delete_booking">
-                                                <input type="hidden" name="booking_id" value="<?php echo $booking['id']; ?>">
-                                                <button type="submit" class="btn btn-danger btn-sm">
-                                                    <i class="fa fa-trash"></i> Hủy
-                                                </button>
-                                            </form>
-                                        <?php elseif ($status == 'checked_in'): ?>
-                                            <span class="badge bg-success"><i class="fa fa-bed"></i> Đã nhận phòng</span>
-                                        <?php elseif ($status == 'checked_out'): ?>
-                                            <span class="badge bg-info"><i class="fa fa-sign-out"></i> Đã trả phòng</span>
-                                        <?php elseif ($status == 'cancelled'): ?>
-                                            <span class="badge bg-secondary"><i class="fa fa-times"></i> Đã hủy</span>
-                                        <?php else: ?>
-                                            <span class="text-muted small">Không có hành động</span>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -128,8 +128,73 @@ include_once('../layout/user/header_user.php');
             </div>
         </div>
     </div>
-    
+</div>
+
+<?php include_once('../layout/user/footer_user.php'); ?>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <?php
-// GỌI FOOTER
-include_once('../layout/user/footer_user.php');
+if (isset($_SESSION['swal_message']) && isset($_SESSION['swal_type'])) {
+    $msg = $_SESSION['swal_message'];
+    $type = $_SESSION['swal_type']; // success hoặc warning
 ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            Swal.fire({
+                icon: '<?php echo $type; ?>', // warning (màu vàng) hoặc success (màu xanh)
+                title: 'Thông báo',
+                html: '<?php echo $msg; ?>', 
+                // Nếu là warning (>15 ngày), tin nhắn sẽ là: "...vui lòng thanh toán trong 24h..."
+                confirmButtonText: 'Đã hiểu',
+                confirmButtonColor: '#3085d6'
+            });
+        });
+    </script>
+<?php
+    unset($_SESSION['swal_message']);
+    unset($_SESSION['swal_type']);
+}
+?>
+<script>
+    // 1. Xác nhận trước khi Hủy
+    document.querySelectorAll('.btn-cancel').forEach(button => {
+        button.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Bạn chắc chắn chứ?',
+                text: "Đơn đặt phòng này sẽ bị hủy vĩnh viễn!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Vâng, hủy đơn!',
+                cancelButtonText: 'Giữ lại'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.closest('form').submit();
+                }
+            });
+        });
+    });
+
+    // 2. Hiển thị thông báo từ Server (Backend gửi sang)
+    <?php
+    if (isset($_SESSION['swal_message']) && isset($_SESSION['swal_type'])) {
+        $msg = $_SESSION['swal_message'];
+        $type = $_SESSION['swal_type']; // success, error, warning
+    ?>
+        document.addEventListener("DOMContentLoaded", function() {
+            Swal.fire({
+                icon: '<?php echo $type; ?>',
+                title: 'Thông báo',
+                html: '<?php echo $msg; ?>', 
+                confirmButtonText: 'Đã hiểu',
+                confirmButtonColor: '#3085d6'
+            });
+        });
+    <?php
+        // Xóa session để không hiện lại khi F5
+        unset($_SESSION['swal_message']);
+        unset($_SESSION['swal_type']);
+    }
+    ?>
+</script>

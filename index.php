@@ -99,10 +99,32 @@
             padding: 40px 0;
             margin-top: 5rem;
         }
+
+        /* Hiệu ứng fade-up */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 1.4s ease;
+        }
+
+        /* Khi xuất hiện trong viewport */
+        .fade-up.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Carousel and side previews: increased height + larger preview thumbnails */
+        .carousel-inner .carousel-item { height: 590px; min-height:420px; background-size: cover; background-position: center; }
+        .side-preview { width:140px; }
+        .side-preview img { height:140px; width:140px; object-fit:cover; border-radius:10px; box-shadow: 0 12px 30px rgba(0,0,0,0.14); }
+        .side-preview-right { right:-52px; top:50%; transform:translateY(-50%); }
+        .side-preview-left { left:-52px; top:50%; transform:translateY(-50%); }
+        @media (max-width:992px) {
+            .carousel-inner .carousel-item { height:320px; min-height:320px; }
+            .side-preview { display:none; }
+        }
     </style>
 </head>
 <body class="bg-light">
-
     <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top shadow-sm">
         <div class="container">
             <a class="navbar-brand text-primary" href="#">
@@ -114,21 +136,17 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#">Trang chủ</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?php echo BASE_URL; ?>qlks/index.php">Dashboard QLKS</a>
-                    </li>
-                    
-                    <li class="nav-item ms-lg-2">
+                    <li class="nav-item"><a class="nav-link" href="#">Trang chủ</a></li>
+                    <li class="nav-item"><a class="nav-link" href="user/rooms.php">Phòng</a></li>
+                    <li class="nav-item"><a class="nav-link" href="user/my_bookings.php">Đơn của tôi</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Liên hệ</a></li>
+                    <li class="nav-item ms-3">
                         <a class="btn btn-outline-primary btn-sm" href="<?php echo BASE_URL; ?>login/index.php">
                             <i class="fa fa-sign-in-alt me-1"></i> Đăng nhập
                         </a>
                     </li>
-                    
-                    <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
-                        <a class="btn btn-success btn-sm" href="<?php echo BASE_URL; ?>login/register.php">
+                    <li class="nav-item ms-2">
+                        <a class="btn btn-primary btn-sm" href="<?php echo BASE_URL; ?>login/register.php">
                              <i class="fa fa-user-plus me-1"></i> Đăng ký
                         </a>
                     </li>
@@ -139,39 +157,98 @@
 
     <header class="hero-section">
         <div class="container">
-            <h1 class="display-3">Hệ thống Quản lý Khách sạn</h1>
-            <p class="lead fs-4">Dự án học tập ứng dụng PHP & MySQL.</p>
+            <h1 class="display-3">Chào mừng đến với Khách sạn Tương Lai</h1>
+            <p class="lead fs-5">Trải nghiệm đặt phòng nhanh chóng, giao diện trực quan, mô phỏng nghiệp vụ quản lý khách sạn.</p>
+
+            <div class="row justify-content-center mt-4">
+                <div class="col-lg-8">
+                    <div class="card p-3" style="background:rgba(255,255,255,0.95);">
+                        <form class="row g-2 align-items-center">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" placeholder="Ngày nhận (dd/mm/yyyy)">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" placeholder="Ngày trả (dd/mm/yyyy)">
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select">
+                                    <option>1 khách</option>
+                                    <option>2 khách</option>
+                                    <option>3 khách</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-grid">
+                                <a href="user/rooms.php" class="btn btn-primary">Tìm phòng</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
-    <section class="container my-5 py-5">
-        <h2 class="section-title">Giới thiệu (Bịa)</h2>
-        <div class="row align-items-center">
+    <section class="container my-5 py-5 fade-up">
+        <h2 class="section-title">Giới thiệu</h2>
+        <div class="row align-items-center gy-4">
             <div class="col-lg-6">
-                <img src="https://images.unsplash.com/photo-1564501049412-61c2a3083791?fit=crop&w=1200&q=80" 
-                     class="img-fluid rounded shadow-lg" alt="Hotel Lobby">
+                <div class="p-4 rounded shadow-sm" style="background:linear-gradient(180deg,#ffffff,#fbfdff)">
+                    <h3 class="fw-bold">Khách sạn Tương Lai</h3>
+                    <p class="text-muted">Đến với Khách sạn Tương Lai, bạn sẽ được hòa mình vào thiên nhiên trong lành, tham gia các hoạt động vui chơi giải trí, thư giãn và nghỉ ngơi để thoát khỏi mọi muộn phiền.</p>
+                    <p class="text-muted">Với không gian nghỉ dưỡng mang đậm nét thiên nhiên, hòa quyện tinh tế cùng nội thất tiêu chuẩn và dịch vụ hoàn hảo, đây sẽ là điểm dừng chân lý tưởng để du khách thư giãn và khơi dậy mọi giác quan.</p>
+                    <ul class="list-unstyled text-muted mt-3">
+                        <li class="mb-2"><i class="fa fa-check text-success me-2"></i> Không gian xanh, gần gũi thiên nhiên.</li>
+                        <li class="mb-2"><i class="fa fa-check text-success me-2"></i> Phòng tiện nghi chuẩn 4-5 sao.</li>
+                        <li class="mb-2"><i class="fa fa-check text-success me-2"></i> Dịch vụ chu đáo, nhanh chóng.</li>
+                    </ul>
+                    <div class="mt-4">
+                        <a href="user/rooms.php" class="btn btn-primary me-2">Xem phòng</a>
+                        <a href="#" class="btn btn-outline-secondary">Tìm hiểu thêm</a>
+                    </div>
+                </div>
             </div>
-            <div class="col-lg-6 mt-4 mt-lg-0 ps-lg-5">
-                <h3 class="fw-bold">Dự án "Khách sạn Tương Lai"</h3>
-                <p class="lead text-muted">Một dự án mô phỏng nghiệp vụ quản lý khách sạn (UI) trong khuôn khổ môn học Lập trình Web PHP.</p>
-                <p>Được "thành lập" (bịa) vào năm 2025, "Khách sạn Tương Lai" là một dự án mô phỏng được phát triển bởi các sinh viên tâm huyết, với mục tiêu ứng dụng công nghệ PHP 8+ và MySQL vào các nghiệp vụ thực tế. Hệ thống của chúng tôi (hiện tại là UI) bao gồm:</p>
-                <ul class="list-unstyled text-muted">
-                    <li><i class="fa fa-check text-success me-2"></i> Dashboard quản lý trực quan.</li>
-                    <li><i class="fa fa-check text-success me-2"></i> Quản lý phòng (CRUD) đầy đủ.</li>
-                    <li><i class="fa fa-check text-success me-2"></i> Giao diện sẵn sàng cho nghiệp vụ đặt phòng.</li>
-                    <li><i class="fa fa-check text-success me-2"></i> Hệ thống quản lý bài tập (tự động) đi kèm.</li>
-                </ul>
+
+            <div class="col-lg-6">
+                <div class="position-relative">
+                    <?php
+                        // Prefer local assets when present
+                        $img1 = file_exists(__DIR__ . '/assets/img/intro1.jpg') ? 'assets/img/intro1.jpg' : 'https://images.unsplash.com/photo-1505691723518-36a2f1a27b22?fit=crop&w=1200&q=80';
+                        $img2 = file_exists(__DIR__ . '/assets/img/intro2.jpg') ? 'assets/img/intro2.jpg' : 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?fit=crop&w=1200&q=80';
+                        $img3 = file_exists(__DIR__ . '/assets/img/intro3.jpg') ? 'assets/img/intro3.jpg' : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?fit=crop&w=1200&q=80';
+                        $imgs = [$img1, $img2, $img3];
+                    ?>
+
+                    <div id="introCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="2000" data-bs-pause="false">
+                        <div class="carousel-inner rounded shadow-sm overflow-hidden">
+                            <?php foreach ($imgs as $i => $src): ?>
+                                <div class="carousel-item<?php echo $i === 0 ? ' active' : ''; ?>" style="background-image:url('<?php echo $src; ?>');"></div>
+                            <?php endforeach; ?>
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#introCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#introCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+
+                    <!-- small side panels to mimic stacked gallery feel -->
+                    <div class="d-none d-md-block position-absolute side-preview side-preview-right">
+                        <img src="<?php echo $img2; ?>" alt="preview" class="img-fluid rounded shadow">
+                    </div>
+                    <div class="d-none d-md-block position-absolute side-preview side-preview-left">
+                        <img src="<?php echo $img3; ?>" alt="preview" class="img-fluid rounded shadow">
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="py-5 bg-white">
+    <section class="py-5 bg-white fade-up">
         <div class="container my-5">
             <h2 class="section-title">Trung tâm Điều hành</h2>
             <div class="row g-4 justify-content-center">
-                
-                
-
                 <div class="col-lg-6 col-md-12">
                     <div class="row g-4">
                         <div class="col-lg-6 col-md-6 card-module">
@@ -198,7 +275,59 @@
             </div> </div>
     </section>
 
-    <section class="container my-5 py-5">
+    <!-- Featured Rooms Preview -->
+    <section class="container my-5 py-5 fade-up">
+        <h2 class="section-title">Phòng nổi bật</h2>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <a class="card-module" href="user/rooms.php">
+                    <div class="card p-0 shadow-sm h-100">
+                        <img src="https://images.unsplash.com/photo-1505691723518-36a2f1a27b22?fit=crop&w=1200&q=80" class="card-img-top" style="height:180px;object-fit:cover;" alt="">
+                        <div class="card-body">
+                            <h5 class="card-title">Deluxe Room</h5>
+                            <p class="card-text text-muted small">Không gian tiện nghi, ban công hướng phố.</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="fw-bold text-danger">1.200.000 VNĐ / đêm</div>
+                                <button class="btn btn-sm btn-primary">Xem & Đặt</button>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <a class="card-module" href="user/rooms.php">
+                    <div class="card p-0 shadow-sm h-100">
+                        <img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?fit=crop&w=1200&q=80" class="card-img-top" style="height:180px;object-fit:cover;" alt="">
+                        <div class="card-body">
+                            <h5 class="card-title">Suite</h5>
+                            <p class="card-text text-muted small">Phòng rộng, thích hợp gia đình hoặc công tác.</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="fw-bold text-danger">2.800.000 VNĐ / đêm</div>
+                                <button class="btn btn-sm btn-primary">Xem & Đặt</button>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <a class="card-module" href="user/rooms.php">
+                    <div class="card p-0 shadow-sm h-100">
+                        <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?fit=crop&w=1200&q=80" class="card-img-top" style="height:180px;object-fit:cover;" alt="">
+                        <div class="card-body">
+                            <h5 class="card-title">Standard</h5>
+                            <p class="card-text text-muted small">Lựa chọn tiết kiệm, sạch sẽ và tiện lợi.</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="fw-bold text-danger">850.000 VNĐ / đêm</div>
+                                <button class="btn btn-sm btn-primary">Xem & Đặt</button>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="container my-5 py-5 fade-up">
         <h2 class="section-title">Đánh giá (Bịa)</h2>
         <div class="row g-4">
             <div class="col-lg-4">
@@ -258,7 +387,7 @@
         </div>
     </section>
 
-    <section class="py-5 bg-white">
+    <section class="py-5 bg-white fade-up">
         <div class="container my-5">
             <h2 class="section-title">Địa chỉ (Giả lập)</h2>
             <div class="row g-4">
@@ -289,5 +418,20 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const elements = document.querySelectorAll('.fade-up');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('show');
+                }
+            });
+        }, { threshold: 0.15 });
+
+        elements.forEach(el => observer.observe(el));
+    });
+    </script>
 </body>
 </html>

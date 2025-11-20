@@ -21,9 +21,40 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
     <style>
-        body { background-color: #f8f9fa; }
-        .register-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 30px 0; }
-        .register-card { width: 100%; max-width: 500px; border: none; border-radius: 0.75rem; }
+        /* ------------------------------------- */
+        /* NỀN ẢNH THÀNH PHỐ RÕ NÉT */
+        /* ------------------------------------- */
+        body { 
+            /* Sử dụng đường dẫn tương đối: Đi từ login/ lên 1 cấp (/) -> assets/img/ */
+            background-image: url('../assets/img/background.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            
+            /* Lớp phủ tối nhẹ (Dark Overlay) */
+            /* Giá trị 0.2 giúp ảnh SÁNG và RÕ NÉT hơn so với 0.3 */
+            background-color: rgba(0, 0, 0, 0.3); 
+            background-blend-mode: darken;
+        }
+
+        /* Đảm bảo nội dung căn giữa và có khoảng đệm */
+        .register-container { 
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 30px 20px; /* Thêm padding ngang */
+        }
+
+        /* Card nổi bật trên nền */
+        .register-card { 
+            width: 100%; 
+            max-width: 500px; 
+            border: none; 
+            border-radius: 0.75rem; 
+            /* Tăng Box Shadow để form nổi bật hơn trên nền ảnh sáng */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
     </style>
 </head>
 <body>

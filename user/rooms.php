@@ -24,8 +24,29 @@ include_once('../layout/user/header_user.php');
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
+    <style>
+        /* Lightweight visual polish for a cleaner, more premium look */
+        .room-card { border: 0; border-radius: 12px; overflow: hidden; }
+        .room-img { height:160px; background: linear-gradient(135deg,#eef2ff 0%,#ffffff 100%); display:flex; align-items:center; justify-content:center; color:#6c63ff; font-size:42px; }
+        .room-badge { position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.6); color:#fff; padding:6px 10px; border-radius:8px; font-size:13px; }
+        .room-features { font-size:13px; color:#6c757d; }
+        .hero-rooms { background:#f8f9ff; border-radius:12px; padding:24px; margin-bottom:18px; }
+        .price-large { font-size:1.15rem; }
+        @media (max-width:576px) { .room-img { height:120px; font-size:36px; } }
+    </style>
+
     <div class="container mt-5">
-        <h1 class="mb-4"><i class="fa fa-bed"></i> Chọn Phòng & Đặt</h1>
+        <div class="hero-rooms d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-1"><i class="fa fa-bed text-primary"></i> Chọn Phòng & Đặt</h1>
+                <p class="text-muted mb-0">Xem phòng trống, so sánh giá và đặt nhanh chóng.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="../index.php" class="btn btn-outline-primary">
+                    <i class="fa fa-home me-1"></i> Về trang chủ
+                </a>
+            </div>
+        </div>
 
         <?php if ($message): ?>
             <div class="alert <?php echo strpos($message, 'Lỗi') !== false ? 'alert-danger' : 'alert-success'; ?> alert-dismissible fade show" role="alert">
@@ -34,32 +55,57 @@ include_once('../layout/user/header_user.php');
             </div>
         <?php endif; ?>
 
-        <div class="row g-4">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-6 col-lg-5 mb-2 mb-md-0">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa fa-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Tìm theo số phòng hoặc loại (ví dụ: Deluxe)">
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-7 text-md-end">
+                <small class="text-muted">Bạn có thể chọn ngày khi nhấn "Đặt ngay" trên từng phòng.</small>
+            </div>
+        </div>
+
+        <div id="rooms-list" class="row g-4">
             <?php if (empty($available_rooms)): ?>
                 <div class="col-12">
-                    <div class="alert alert-warning">
-                        Hiện tại không còn phòng nào trống để đặt. Vui lòng thử lại sau.
+                    <div class="card p-4 text-center">
+                        <h5 class="mb-2">Không có phòng trống</h5>
+                        <p class="text-muted mb-3">Hiện tại không còn phòng trống để đặt. Bạn có thể trở về trang chủ hoặc thử thay đổi ngày.</p>
+                        <a href="../index.php" class="btn btn-primary">Về trang chủ</a>
                     </div>
                 </div>
             <?php else: ?>
                 <?php foreach ($available_rooms as $room): ?>
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card shadow-sm h-100">
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="card room-card shadow-sm h-100 position-relative">
+                            <div class="room-img position-relative">
+                                <div class="room-badge">Phòng #<?php echo htmlspecialchars($room['room_number']); ?></div>
+                                <i class="fa fa-hotel"></i>
+                            </div>
                             <div class="card-body d-flex flex-column">
-                                <h5 class="card-title fw-bold text-primary"><?php echo htmlspecialchars($room['room_number']); ?> - <?php echo htmlspecialchars($room['type_name']); ?></h5>
-                                <p class="card-text text-muted small"><?php echo htmlspecialchars($room['description']); ?></p>
-                                <p class="fs-4 fw-bold mt-auto text-danger">
-                                    <?php echo number_format($room['base_price'], 0, ',', '.'); ?> VNĐ / đêm
-                                </p>
-                                <button type="button" 
-                                        class="btn btn-success btn-sm mt-2 btn-book-room" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#bookingModal"
-                                        data-room-id="<?php echo $room['id']; ?>"
-                                        data-room-number="<?php echo $room['room_number']; ?>"
-                                        data-room-price="<?php echo $room['base_price']; ?>">
-                                    <i class="fa fa-calendar-plus me-1"></i> Đặt ngay
-                                </button>
+                                <h5 class="card-title mb-1 fw-semibold"><?php echo htmlspecialchars($room['type_name']); ?></h5>
+                                <p class="room-features mb-2 small"><?php echo htmlspecialchars($room['description']); ?></p>
+
+                                <div class="mt-auto d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="text-muted small">Giá bắt đầu</div>
+                                        <div class="fw-bold text-danger price-large"><?php echo number_format($room['base_price'], 0, ',', '.'); ?> VNĐ</div>
+                                    </div>
+
+                                    <div class="text-end">
+                                        <button type="button" 
+                                                class="btn btn-primary btn-book-room"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#bookingModal"
+                                                data-room-id="<?php echo $room['id']; ?>"
+                                                data-room-number="<?php echo $room['room_number']; ?>"
+                                                data-room-price="<?php echo $room['base_price']; ?>">
+                                            <i class="fa fa-calendar-plus me-1"></i> Đặt ngay
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

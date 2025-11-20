@@ -19,17 +19,36 @@ include_once('../layout/user/header_user.php');
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<style>
+    /* Small UI polish for bookings */
+    .booking-hero { background: #f7f9ff; padding:18px; border-radius:10px; margin-bottom:16px; }
+    .booking-card { border:0; border-radius:10px; overflow:hidden; }
+    .search-input { max-width:420px; }
+    .no-results-row td { text-align:center; padding:40px 20px; }
+</style>
+
 <div class="container mt-5 mb-5">
-    <h2 class="mb-4 text-primary"><i class="fa fa-history"></i> Lịch Sử Đặt Phòng</h2>
-    <p class="text-muted">Xin chào, <strong><?php echo htmlspecialchars($customer_username); ?></strong>. Dưới đây là danh sách các đơn đặt phòng của bạn.</p>
-    
-    <div class="card shadow border-0">
-        <div class="card-header bg-white border-bottom">
+    <div class="booking-hero d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <h2 class="mb-1 text-primary"><i class="fa fa-history"></i> Lịch Sử Đặt Phòng</h2>
+            <p class="text-muted mb-0">Xin chào, <strong><?php echo htmlspecialchars($customer_username); ?></strong>. Dưới đây là danh sách các đơn đặt phòng của bạn.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <input id="booking_search" type="text" class="form-control search-input" placeholder="Tìm theo mã đơn hoặc số phòng">
+            <a href="../index.php" class="btn btn-outline-primary">
+                <i class="fa fa-home"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="card booking-card shadow border-0">
+        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
             <h5 class="mb-0 text-secondary">Danh sách đơn hàng</h5>
+            <small class="text-muted">Tổng: <?php echo count($my_bookings); ?> đơn</small>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table id="bookings_table" class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th class="ps-4">Mã đơn</th>
@@ -55,48 +74,26 @@ include_once('../layout/user/header_user.php');
                             <?php foreach ($my_bookings as $booking): ?>
                                 <tr>
                                     <td class="ps-4 fw-bold">#<?php echo $booking['id']; ?></td>
-                                    <td class="text-primary fw-bold">
-                                        <?php echo htmlspecialchars($booking['room_number']); ?>
-                                    </td>
+                                    <td class="text-primary fw-bold"><?php echo htmlspecialchars($booking['room_number']); ?></td>
                                     <td>
                                         <small class="text-muted">Nhận:</small> <strong><?php echo date('d/m/Y', strtotime($booking['check_in_date'])); ?></strong><br>
                                         <small class="text-muted">Trả:&nbsp;&nbsp;&nbsp;</small> <strong><?php echo date('d/m/Y', strtotime($booking['check_out_date'])); ?></strong>
                                     </td>
-                                    <td class="fw-bold text-danger">
-                                        <?php echo number_format($booking['total_price'], 0, ',', '.'); ?> đ
-                                    </td>
+                                    <td class="fw-bold text-danger"><?php echo number_format($booking['total_price'], 0, ',', '.'); ?> đ</td>
                                     <td>
                                         <?php 
                                             $st = $booking['status'];
                                             $badgeClass = 'bg-secondary';
                                             $statusText = 'Không rõ';
-                                            
                                             switch ($st) {
-                                                case 'pending':
-                                                    $badgeClass = 'bg-warning text-dark';
-                                                    $statusText = 'Chờ thanh toán';
-                                                    break;
-                                                case 'confirmed':
-                                                    $badgeClass = 'bg-primary';
-                                                    $statusText = 'Đã xác nhận';
-                                                    break;
-                                                case 'checked_in':
-                                                    $badgeClass = 'bg-success';
-                                                    $statusText = 'Đang ở';
-                                                    break;
-                                                case 'checked_out':
-                                                    $badgeClass = 'bg-info text-dark';
-                                                    $statusText = 'Đã trả phòng';
-                                                    break;
-                                                case 'cancelled':
-                                                    $badgeClass = 'bg-danger';
-                                                    $statusText = 'Đã hủy';
-                                                    break;
+                                                case 'pending': $badgeClass = 'bg-warning text-dark'; $statusText = 'Chờ thanh toán'; break;
+                                                case 'confirmed': $badgeClass = 'bg-primary'; $statusText = 'Đã xác nhận'; break;
+                                                case 'checked_in': $badgeClass = 'bg-success'; $statusText = 'Đang ở'; break;
+                                                case 'checked_out': $badgeClass = 'bg-info text-dark'; $statusText = 'Đã trả phòng'; break;
+                                                case 'cancelled': $badgeClass = 'bg-danger'; $statusText = 'Đã hủy'; break;
                                             }
                                         ?>
-                                        <span class="badge <?php echo $badgeClass; ?> rounded-pill px-3 py-2">
-                                            <?php echo $statusText; ?>
-                                        </span>
+                                        <span class="badge <?php echo $badgeClass; ?> rounded-pill px-3 py-2"><?php echo $statusText; ?></span>
                                     </td>
                                     <td>
                                         <?php if ($st == 'pending'): ?>
@@ -175,6 +172,39 @@ if (isset($_SESSION['swal_message']) && isset($_SESSION['swal_type'])) {
             });
         });
     });
+
+    // 2. Client-side search/filter for bookings (non-destructive)
+    (function() {
+        var input = document.getElementById('booking_search');
+        if (!input) return;
+        var table = document.getElementById('bookings_table');
+        var tbody = table ? table.querySelector('tbody') : null;
+
+        function refreshNoResults() {
+            // remove existing marker row
+            var existing = tbody.querySelector('.no-results-row');
+            if (existing) existing.remove();
+
+            var visible = Array.from(tbody.querySelectorAll('tr')).filter(r => r.style.display !== 'none');
+            if (visible.length === 0) {
+                var tr = document.createElement('tr');
+                tr.className = 'no-results-row';
+                tr.innerHTML = '<td colspan="6" class="text-muted">Không tìm thấy kết quả phù hợp.</td>';
+                tbody.appendChild(tr);
+            }
+        }
+
+        input.addEventListener('input', function() {
+            var q = this.value.trim().toLowerCase();
+            Array.from(tbody.querySelectorAll('tr')).forEach(function(row) {
+                // ignore the empty-state row (it has colspan etc.)
+                if (row.classList.contains('no-results-row')) return;
+                var text = row.textContent.toLowerCase();
+                row.style.display = q === '' || text.indexOf(q) !== -1 ? '' : 'none';
+            });
+            refreshNoResults();
+        });
+    })();
 
     // 2. Hiển thị thông báo từ Server (Backend gửi sang)
     <?php

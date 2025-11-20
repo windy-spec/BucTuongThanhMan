@@ -25,9 +25,36 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
     <style>
-        body { background-color: #f8f9fa; }
-        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-card { width: 100%; max-width: 450px; border: none; border-radius: 0.75rem; }
+        body { 
+            background-image: url('../assets/img/background.jpg'); /* Thay bằng URL ảnh view thành phố của bạn */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed; /* Giúp ảnh nền không cuộn theo trang */
+            /* Áp dụng lớp phủ tối (Dark Overlay) */
+            background-color: rgba(0, 0, 0, 0.3); /* Màu đen, độ trong suốt 30% */
+            background-blend-mode: darken;
+            filter: none;
+        }
+        
+        /* Login Container - Đảm bảo căn giữa */
+        .login-container { 
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            /* Cần có padding để nội dung không chạm mép khi view nhỏ */
+            padding: 20px; 
+        }
+        
+        /* Login Card - Đảm bảo độ sáng và nổi bật */
+        .login-card { 
+            width: 100%; 
+            max-width: 450px; 
+            border: none; 
+            border-radius: 0.75rem; 
+            /* Thêm hiệu ứng box-shadow mạnh hơn để nổi bật */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
     </style>
 </head>
 <body>

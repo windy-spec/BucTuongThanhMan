@@ -8,7 +8,7 @@
         ini_set('display_startup_errors', 1);
         error_reporting(E_ALL);
         // define('BASE_URL', 'http://localhost/QLKS/');
-        define('BASE_URL', 'http://localhost:8080/DoAnThayNghia/BucTuongThanhMan/');
+        define('BASE_URL', 'http://localhost:/QLKS/');
         // --- THAY ĐỔI THÔNG TIN KẾT NỐI CỦA BẠN DƯỚI ĐÂY ---
         $db_host = 'localhost';     // Thường là 'localhost'
         $db_name = 'QLKS';  // Tên Database bạn tạo trong phpMyAdmin

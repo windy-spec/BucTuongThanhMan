@@ -1,4 +1,8 @@
 <?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+// Bật hiển thị lỗi (chỉ nên dùng trong môi trường dev)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -12,7 +16,7 @@ class RoomController {
     }
 
     /* ---------------------------------------------------------
-       HÀM 1: Danh sách phòng + loại phòng
+        HÀM 1: Danh sách phòng + loại phòng (ADMIN)
     --------------------------------------------------------- */
     public function getAllRoomsWithTypes() {
         $sql = "SELECT 
@@ -32,7 +36,7 @@ class RoomController {
     }
 
     /* ---------------------------------------------------------
-       HÀM 2: Lấy loại phòng
+        HÀM 2: Lấy loại phòng
     --------------------------------------------------------- */
     public function getAllRoomTypes() {
         $sql = "SELECT id, type_name FROM room_types ORDER BY type_name";
@@ -42,7 +46,7 @@ class RoomController {
     }
 
     /* ---------------------------------------------------------
-       HÀM 3: Thêm phòng
+        HÀM 3: Thêm phòng
     --------------------------------------------------------- */
     public function createRoom($room_number, $room_type_id) {
         try {
@@ -76,7 +80,7 @@ class RoomController {
     }
 
     /* ---------------------------------------------------------
-       HÀM 4: Sửa phòng
+        HÀM 4: Sửa phòng
     --------------------------------------------------------- */
     public function updateRoom($room_id, $room_type_id, $status) {
         $sql = "UPDATE rooms 
@@ -94,7 +98,7 @@ class RoomController {
     }
 
     /* ---------------------------------------------------------
-       HÀM 5: Thống kê phòng
+        HÀM 5: Thống kê phòng
     --------------------------------------------------------- */
     public function getRoomStats() {
         $total = $this->conn->query("SELECT COUNT(id) AS total FROM rooms")
@@ -112,7 +116,7 @@ class RoomController {
     }
 
     /* ---------------------------------------------------------
-       HÀM 6: Xóa phòng
+        HÀM 6: Xóa phòng
     --------------------------------------------------------- */
     public function deleteRoom($room_id) {
         try {
@@ -125,22 +129,65 @@ class RoomController {
     }
 
     /* ---------------------------------------------------------
-       HÀM 7: Lấy phòng trống
+        HÀM 7: Lấy phòng trống CÓ LỌC (Theo Ngày và Giá) - CẬP NHẬT
     --------------------------------------------------------- */
-    public function getAvailableRooms() {
-        $sql = "SELECT r.id, r.room_number, rt.type_name, rt.base_price, rt.description
-                FROM rooms r
-                JOIN room_types rt ON r.room_type_id = rt.id
-                WHERE r.status = 'available'
-                ORDER BY rt.base_price ASC";
+    public function getAvailableRooms($check_in_date = null, $check_out_date = null, $max_price = null) {
+        
+        $current_date = date('Y-m-d'); 
+        
+        // 1. GÁN GIÁ TRỊ MẶC ĐỊNH & CHUẨN BỊ THAM SỐ
+        $check_in = $check_in_date ?: $current_date; 
+        $check_out = $check_out_date ?: date('Y-m-d', strtotime('+1 year')); 
+        
+        $params = [
+            'check_in' => $check_in,
+            'check_out' => $check_out
+        ];
+        
+        $where_price = "";
 
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // 2. XÂY DỰNG ĐIỀU KIỆN LỌC GIÁ
+        if ($max_price !== null && $max_price > 0) {
+            $where_price = " AND rt.base_price <= :max_price";
+            $params['max_price'] = $max_price;
+        }
+
+        // 3. CÂU TRUY VẤN SQL KẾT HỢP LỌC GIÁ VÀ LỌC LỊCH TRỐNG
+        $sql = "
+            SELECT 
+                r.id, r.room_number, rt.type_name, rt.base_price, rt.description
+            FROM 
+                rooms r
+            JOIN 
+                room_types rt ON r.room_type_id = rt.id
+            WHERE
+                r.status = 'available'
+                {$where_price} 
+                AND r.id NOT IN (
+                    SELECT 
+                        b.room_id 
+                    FROM 
+                        bookings b 
+                    WHERE
+                        b.check_out_date > :check_in
+                        AND b.check_in_date < :check_out
+                        AND b.status IN ('pending', 'checked_in')
+                )
+            ORDER BY
+                rt.base_price ASC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Lỗi SQL getAvailableRooms: " . $e->getMessage());
+            return [];
+        }
     }
 
     /* ---------------------------------------------------------
-       HÀM 8: Lấy chi tiết phòng theo ID (CHUẨN)
+        HÀM 8: Lấy chi tiết phòng theo ID (CHUẨN)
     --------------------------------------------------------- */
     public function getRoomDetailsById($roomId) {
 

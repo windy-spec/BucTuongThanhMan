@@ -10,9 +10,21 @@ $module = 'rooms';
 include_once(__DIR__ . '/../config.php'); 
 include_once(__DIR__ . '/../controller/RoomController.php'); 
 
-// 4. KHỞI TẠO VÀ LẤY DỮ LIỆU PHÒNG TRỐNG
+// 4. KHỞI TẠO VÀ LẤY DỮ LIỆU PHÒNG TRỐNG (ĐÃ CHỈNH SỬA)
 $roomController = new RoomController($conn);
-$available_rooms = $roomController->getAvailableRooms();
+
+// 4a. Lấy tham số tìm kiếm từ URL ($_GET)
+// Dữ liệu từ JS sẽ là YYYY-MM-DD. Lấy trực tiếp.
+$check_in = isset($_GET['check_in']) ? $_GET['check_in'] : null;
+$check_out = isset($_GET['check_out']) ? $_GET['check_out'] : null;
+$max_price = isset($_GET['max_price']) ? (int)$_GET['max_price'] : null;
+
+// Chuyển đổi sang định dạng hiển thị dd/mm/yyyy (để dùng trong HTML data và hiển thị)
+$check_in_str = $check_in ? date('d/m/Y', strtotime($check_in)) : null;
+$check_out_str = $check_out ? date('d/m/Y', strtotime($check_out)) : null;
+
+// 4b. Gọi hàm với tham số (sử dụng $check_in, $check_out ở định dạng YYYY-MM-DD)
+$available_rooms = $roomController->getAvailableRooms($check_in, $check_out, $max_price);
 
 // 5. LẤY THÔNG BÁO (nếu có)
 $message = isset($_SESSION['message']) ? $_SESSION['message'] : '';
@@ -55,25 +67,41 @@ include_once('../layout/user/header_user.php');
             </div>
         <?php endif; ?>
 
-        <div class="row align-items-center mb-4">
-            <div class="col-md-6 col-lg-5 mb-2 mb-md-0">
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fa fa-search"></i></span>
-                    <input type="text" class="form-control" placeholder="Tìm theo số phòng hoặc loại (ví dụ: Deluxe)">
+            <div class="row align-items-center mb-4">
+                <div class="col-md-12 text-center text-md-start">
+                    <p class="mb-0 fw-bold">
+                        <?php
+                        // Hiển thị thông tin tìm kiếm
+                        $search_info = "Phòng trống";
+                        if ($check_in_str && $check_out_str) {
+                            $search_info .= " từ <span class='text-primary'>{$check_in_str}</span> đến <span class='text-primary'>{$check_out_str}</span>";
+                        }
+                        if ($max_price) {
+                            $formatted_price = number_format($max_price, 0, ',', '.');
+                            $search_info .= " với giá $\le$ <span class='text-danger'>{$formatted_price} VNĐ/đêm</span>";
+                        } else {
+                            if (!$check_in_str) $search_info .= " từ hôm nay";
+                        }
+                        echo $search_info . ":";
+                        ?>
+                    </p>
                 </div>
-            </div>
-            <div class="col-md-6 col-lg-7 text-md-end">
-                <small class="text-muted">Bạn có thể chọn ngày khi nhấn "Đặt ngay" trên từng phòng.</small>
-            </div>
         </div>
 
         <div id="rooms-list" class="row g-4">
             <?php if (empty($available_rooms)): ?>
                 <div class="col-12">
                     <div class="card p-4 text-center">
-                        <h5 class="mb-2">Không có phòng trống</h5>
-                        <p class="text-muted mb-3">Hiện tại không còn phòng trống để đặt. Bạn có thể trở về trang chủ hoặc thử thay đổi ngày.</p>
-                        <a href="../index.php" class="btn btn-primary">Về trang chủ</a>
+                        <h5 class="mb-2">Không có phòng phù hợp 😥</h5>
+                        <p class="text-muted mb-3">
+                            Hiện tại không có phòng nào thỏa mãn điều kiện tìm kiếm của bạn. 
+                            <?php 
+                            if ($check_in_str || $max_price) {
+                                echo "Vui lòng <a href='../index.php' class='fw-bold'>thử lại với ngày khác hoặc mức giá linh hoạt hơn</a>.";
+                            }
+                            ?>
+                        </p>
+                        <a href="../index.php" class="btn btn-primary">Tìm kiếm lại</a>
                     </div>
                 </div>
             <?php else: ?>
@@ -91,17 +119,19 @@ include_once('../layout/user/header_user.php');
                                 <div class="mt-auto d-flex align-items-center justify-content-between">
                                     <div>
                                         <div class="text-muted small">Giá bắt đầu</div>
-                                        <div class="fw-bold text-danger price-large"><?php echo number_format($room['base_price'], 0, ',', '.'); ?> VNĐ</div>
+                                        <div class="fw-bold text-danger price-large"><?php echo number_format($room['base_price'], 0, ',', '.'); ?> VNĐ / đêm</div>
                                     </div>
 
                                     <div class="text-end">
                                         <button type="button" 
-                                                class="btn btn-primary btn-book-room"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#bookingModal"
-                                                data-room-id="<?php echo $room['id']; ?>"
-                                                data-room-number="<?php echo $room['room_number']; ?>"
-                                                data-room-price="<?php echo $room['base_price']; ?>">
+                                            class="btn btn-primary btn-book-room"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#bookingModal"
+                                            data-room-id="<?php echo $room['id']; ?>"
+                                            data-room-number="<?php echo $room['room_number']; ?>"
+                                            data-room-price="<?php echo $room['base_price']; ?>"
+                                            data-check-in="<?php echo htmlspecialchars($check_in_str ?? ''); ?>"
+                                            data-check-out="<?php echo htmlspecialchars($check_out_str ?? ''); ?>"> 
                                             <i class="fa fa-calendar-plus me-1"></i> Đặt ngay
                                         </button>
                                     </div>
@@ -163,14 +193,11 @@ include_once('../layout/user/header_user.php');
         // --- 1. CẤU HÌNH FLATPICKR (LỊCH dd/mm/yyyy) ---
         
         var fpCheckIn = flatpickr("#check_in_date", {
-            locale: "vn",             
-            dateFormat: "Y-m-d",      
-            altInput: true,           
-            altFormat: "d/m/Y",       
-            // minDate: "today",      <-- ĐÃ XÓA DÒNG NÀY (Để hiện ngày quá khứ)
+            locale: "vn",           
+            dateFormat: "Y-m-d",     // Định dạng giá trị gửi đi (định dạng CSDL)
+            altInput: true,         
+            altFormat: "d/m/Y",      // Định dạng hiển thị
             onChange: function(selectedDates, dateStr, instance) {
-                // Logic cũ: Khi chọn Check-in thì Check-out phải lớn hơn hoặc bằng
-                // Chúng ta vẫn giữ logic này để tránh chọn ngày trả trước ngày nhận
                 fpCheckOut.set('minDate', dateStr); 
                 calculateTotalPrice();
             }
@@ -181,7 +208,6 @@ include_once('../layout/user/header_user.php');
             dateFormat: "Y-m-d",
             altInput: true,
             altFormat: "d/m/Y",
-            // minDate: "today",      <-- ĐÃ XÓA DÒNG NÀY
             onChange: function(selectedDates, dateStr, instance) {
                 calculateTotalPrice();
             }
@@ -189,50 +215,4 @@ include_once('../layout/user/header_user.php');
 
         // --- 2. HÀM TÍNH TOÁN GIÁ (Giữ nguyên) ---
         function calculateTotalPrice() {
-            var checkIn = document.getElementById('check_in_date').value;
-            var checkOut = document.getElementById('check_out_date').value;
-
-            if (checkIn && checkOut) {
-                var date1 = new Date(checkIn);
-                var date2 = new Date(checkOut);
-                var timeDiff = date2.getTime() - date1.getTime();
-                var dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
-
-                if (dayDiff > 0) {
-                    var totalPrice = dayDiff * currentRoomPrice;
-                    document.getElementById('total_price_calculated').textContent = new Intl.NumberFormat('vi-VN').format(totalPrice) + ' VNĐ';
-                    document.getElementById('modal_total_price').value = totalPrice;
-                    return;
-                }
-            }
-            document.getElementById('total_price_calculated').textContent = '0 VNĐ';
-            document.getElementById('modal_total_price').value = 0;
-        }
-
-        // --- 3. XỬ LÝ KHI MỞ MODAL (Giữ nguyên) ---
-        bookingModal.addEventListener('show.bs.modal', function (event) {
-            var button = event.relatedTarget; 
-            var roomId = button.getAttribute('data-room-id');
-            var roomNumber = button.getAttribute('data-room-number');
-            var roomPrice = parseFloat(button.getAttribute('data-room-price'));
-
-            currentRoomPrice = roomPrice;
-
-            document.getElementById('modal_room_number').textContent = roomNumber;
-            document.getElementById('modal_room_id').value = roomId;
-            document.getElementById('modal_room_price_display').textContent = new Intl.NumberFormat('vi-VN').format(roomPrice);
-
-            // Reset lịch
-            fpCheckIn.clear();
-            fpCheckOut.clear();
-            document.getElementById('total_price_calculated').textContent = '0 VNĐ';
-        });
-    });
-    
-    // ... (Đoạn code hiển thị Popup SweetAlert giữ nguyên) ...
-</script>
-
-<?php
-// GỌI FOOTER
-include_once('../layout/user/footer_user.php');
-?>
+            var checkIn = document.getElementById('check_in_date').value

@@ -185,16 +185,29 @@
                     <li class="nav-item"><a class="nav-link" href="user/rooms.php">Phòng</a></li>
                     <li class="nav-item"><a class="nav-link" href="user/my_bookings.php">Đơn của tôi</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Liên hệ</a></li>
-                    <li class="nav-item ms-3">
-                        <a class="btn btn-outline-primary btn-sm" href="<?php echo BASE_URL; ?>login/index.php">
-                            <i class="fa fa-sign-in-alt me-1"></i> Đăng nhập
-                        </a>
-                    </li>
-                    <li class="nav-item ms-2">
-                        <a class="btn btn-primary btn-sm" href="<?php echo BASE_URL; ?>login/register.php">
-                             <i class="fa fa-user-plus me-1"></i> Đăng ký
-                        </a>
-                    </li>
+                    <?php if ($is_logged_in): ?>
+    <li class="nav-item dropdown ms-3">
+        <a class="btn btn-outline-primary btn-sm dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fa fa-user-circle me-1"></i> Tài khoản
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="user/my_bookings.php"><i class="fa fa-list-alt me-2"></i>Đơn của tôi</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="<?php echo BASE_URL; ?>login/logout.php"><i class="fa fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
+        </ul>
+    </li>
+<?php else: ?>
+    <li class="nav-item ms-3">
+        <a class="btn btn-outline-primary btn-sm" href="<?php echo BASE_URL; ?>login/index.php">
+            <i class="fa fa-sign-in-alt me-1"></i> Đăng nhập
+        </a>
+    </li>
+    <li class="nav-item ms-2">
+        <a class="btn btn-primary btn-sm" href="<?php echo BASE_URL; ?>login/register.php">
+                <i class="fa fa-user-plus me-1"></i> Đăng ký
+        </a>
+    </li>
+<?php endif; ?>
                 </ul>
             </div>
         </div>

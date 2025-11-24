@@ -11,7 +11,7 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 // 2. Gọi Controller
 include_once(__DIR__ . '/../config.php'); 
-include_once(__DIR__ . '/../controller/AuthController.php'); 
+include_once(__DIR__ . '/../controller/authController.php'); 
 
 // 3. Khởi tạo và xử lý
 // $conn phải được khởi tạo trong config.php

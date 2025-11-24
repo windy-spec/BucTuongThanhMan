@@ -77,9 +77,11 @@ include_once('../layout/user/header_user.php');
                             $search_info .= " từ <span class='text-primary'>{$check_in_str}</span> đến <span class='text-primary'>{$check_out_str}</span>";
                         }
                         if ($max_price) {
-                            $formatted_price = number_format($max_price, 0, ',', '.');
-                            $search_info .= " với giá $\le$ <span class='text-danger'>{$formatted_price} VNĐ/đêm</span>";
-                        } else {
+    $formatted_price = number_format($max_price, 0, ',', '.');
+    // Sửa thành "tối đa"
+    $search_info .= " với giá tối đa <span class='text-danger'>{$formatted_price} VNĐ/đêm</span>";
+}
+else {
                             if (!$check_in_str) $search_info .= " từ hôm nay";
                         }
                         echo $search_info . ":";

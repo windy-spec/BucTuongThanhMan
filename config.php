@@ -1,44 +1,57 @@
-        <?php
+<?php
+// 1. CẤU HÌNH CHUNG CHO PHP
+date_default_timezone_set('Asia/Ho_Chi_Minh');
 
-        // 1. ĐẶT MÚI GIỜ CHUNG CHO PHP (RẤT QUAN TRỌNG)
-        date_default_timezone_set('Asia/Ho_Chi_Minh'); 
+// Bật hiển thị lỗi (Để dễ gỡ lỗi, khi nào hoàn thiện web 100% thì nên tắt đi)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-        // Bật hiển thị lỗi (để gỡ lỗi)
-        ini_set('display_errors', 1);
-        ini_set('display_startup_errors', 1);
-        error_reporting(E_ALL);
-        // define('BASE_URL', 'http://localhost/QLKS/');
-        // define('BASE_URL', 'http://localhost:/QLKS/');
-        // đường dẫn của Khoa
-        define('BASE_URL', 'http://localhost:8080/DoAnThayNghia/BucTuongThanhMan/');
-        // --- THAY ĐỔI THÔNG TIN KẾT NỐI CỦA BẠN DƯỚI ĐÂY ---
-        $db_host = 'localhost';     // Thường là 'localhost'
-        $db_name = 'QLKS';  // Tên Database bạn tạo trong phpMyAdmin
-        $db_user = 'root';          // Tên người dùng CSDL (thường là 'root' trên localhost)
-        $db_pass = '';              // Mật khẩu CSDL (thường là rỗng trên localhost)
-        // --------------------------------------------------
-        $charset = 'utf8mb4';
-
-        // DSN (Data Source Name)
-        $dsn = "mysql:host=$db_host;dbname=$db_name;charset=$charset";
-
-        // Các tùy chọn cho PDO
-        $options = [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ];
-
-        try {
-            // Tạo đối tượng PDO và gán vào biến $conn
-            $conn = new PDO($dsn, $db_user, $db_pass, $options);
-            
-        } catch (\PDOException $e) {
-            // Nếu kết nối thất bại, hiển thị lỗi và dừng chương trình
-            throw new \PDOException($e->getMessage(), (int)$e->getCode());
-        }
-        if (session_status() == PHP_SESSION_NONE) {
-        session_start();
-        }
+// 2. TỰ ĐỘNG NHẬN DIỆN MÔI TRƯỜNG (LOCALHOST HAY HOSTING)
+// Kiểm tra tên miền hiện tại để chọn cấu hình phù hợp
+if ($_SERVER['HTTP_HOST'] == 'localhost' || $_SERVER['HTTP_HOST'] == '127.0.0.1') {
     
-        ?>
+    // --- TRƯỜNG HỢP 1: CHẠY Ở MÁY NHÀ (LOCALHOST) ---
+    $db_host = 'localhost';
+    $db_name = 'QLKS';          // Tên Database trong XAMPP/WAMP
+    $db_user = 'root';          // User mặc định của XAMPP
+    $db_pass = '';              // Pass mặc định của XAMPP (thường rỗng)
+    
+    // Đường dẫn gốc ở máy nhà (Đã sửa lỗi dư dấu : của bạn)
+    define('BASE_URL', 'http://localhost/QLKS/'); 
+}  else {
+
+    $db_host = 'sql100.infinityfree.com';
+    $db_name = 'if0_40426028_QLKS';
+    $db_user = 'if0_40426028';
+    $db_pass = 'c6UO2a80pv';
+
+    // BASE_URL CHÍNH XÁC CHO HOSTING
+    define('BASE_URL', 'https://buctuongthanhman.infinityfree.me/');
+}
+
+
+// 3. KẾT NỐI CSDL (PDO)
+$charset = 'utf8mb4';
+$dsn = "mysql:host=$db_host;dbname=$db_name;charset=$charset";
+
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+];
+
+try {
+    // Tạo kết nối PDO
+    $conn = new PDO($dsn, $db_user, $db_pass, $options);
+} catch (\PDOException $e) {
+    // Nếu lỗi kết nối, dừng chương trình và báo lỗi
+    // (Trên web thực tế nên ẩn $e->getMessage() đi để bảo mật, nhưng giờ đang học thì cứ để)
+    die("Lỗi kết nối Database: " . $e->getMessage());
+}
+
+// 4. KHỞI ĐỘNG SESSION (Nếu chưa có)
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+?>

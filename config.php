@@ -32,7 +32,7 @@ if ($_SERVER['HTTP_HOST'] == 'localhost' || $_SERVER['HTTP_HOST'] == '127.0.0.1'
 
     // Đường dẫn gốc trên hosting (Bạn kiểm tra lại tên miền chính xác nhé)
     // Ví dụ: http://buctuongthanhman.infinityfreeapp.com/
-    define('BASE_URL', 'http://' . $_SERVER['HTTP_HOST'] . '/');
+    define('BASE_URL', 'https://buctuongthanhman.infinityfree.me/' . $_SERVER['HTTP_HOST'] . '/');
 }
 
 // 3. KẾT NỐI CSDL (PDO)

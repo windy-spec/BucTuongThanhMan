@@ -264,24 +264,88 @@ else {
         }
 
         // --- HÀM TÍNH TIỀN ---
-        function calculateTotalPrice() {
-            var checkInDate = fpCheckIn.selectedDates[0];
-            var checkOutDate = fpCheckOut.selectedDates[0];
+        // --- HÀM TÍNH TIỀN (Đã nâng cấp tính năng tăng giá cuối tuần) ---
+// --- HÀM TÍNH TIỀN (Đã nâng cấp: Chặn > 30 ngày + Tăng giá cuối tuần) ---
+function calculateTotalPrice() {
+    var checkInDate = fpCheckIn.selectedDates[0];
+    var checkOutDate = fpCheckOut.selectedDates[0];
+    
+    var totalPriceDisplay = document.getElementById('total_price_calculated');
+    var totalPriceInput = document.getElementById('modal_total_price');
+    
+    // Lấy nút Submit để khóa lại nếu vi phạm ngày
+    var submitBtn = document.querySelector('#bookingModal button[type="submit"]');
 
-            if (checkInDate && checkOutDate) {
-                var diffTime = Math.abs(checkOutDate - checkInDate);
-                var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (checkInDate && checkOutDate && checkOutDate > checkInDate) {
+        // 1. Tính số đêm trước để kiểm tra giới hạn
+        var diffTime = Math.abs(checkOutDate - checkInDate);
+        var nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                if (diffDays > 0) {
-                    var total = diffDays * currentRoomPrice;
-                    updateTotalDisplay(total, diffDays);
-                } else {
-                    updateTotalDisplay(0, 0);
-                }
-            } else {
-                updateTotalDisplay(0, 0);
-            }
+        // --- KIỂM TRA: NẾU QUÁ 30 NGÀY ---
+        if (nights > 30) {
+            // Hiển thị cảnh báo màu đỏ
+            totalPriceDisplay.innerHTML = '<span class="text-danger fw-bold"><i class="fa fa-phone"></i> Thời gian lưu trú quá 30 ngày. Vui lòng liên hệ trực tiếp để nhận ưu đãi dài hạn!</span>';
+            totalPriceInput.value = 0;
+            
+            // Khóa nút xác nhận đặt phòng
+            submitBtn.disabled = true; 
+            return; // Dừng hàm, không tính tiền nữa
         }
+
+        // Nếu hợp lệ (< 30 ngày), mở lại nút Submit
+        submitBtn.disabled = false;
+
+        // --- BẮT ĐẦU TÍNH TIỀN (LOGIC CŨ) ---
+        var total = 0;
+        var surchargeCount = 0; // Đếm số đêm cuối tuần
+        
+        // Tạo biến chạy loop
+        var currentDate = new Date(checkInDate);
+        // Loop chạy theo số đêm (nights) đã tính ở trên
+        for (var i = 0; i < nights; i++) {
+            var dayOfWeek = currentDate.getDay(); // 0: CN, 6: T7
+            
+            // Nếu là T7 hoặc CN -> Tăng 10%
+            if (dayOfWeek === 6 || dayOfWeek === 0) {
+                total += currentRoomPrice * 1.1; 
+                surchargeCount++;
+            } else {
+                total += currentRoomPrice;
+            }
+            
+            // Tăng ngày lên để check ngày tiếp theo
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Làm tròn tổng tiền
+        total = Math.round(total);
+
+        // --- HIỂN THỊ KẾT QUẢ ---
+        // Tạo text hiển thị cơ bản
+        var displayText = new Intl.NumberFormat('vi-VN').format(total) + " VNĐ (" + nights + " đêm)";
+        
+        // Nếu có phụ thu cuối tuần, thêm dòng chú thích nhỏ
+        if (surchargeCount > 0) {
+            var surchargeAmount = (currentRoomPrice * 0.1) * surchargeCount;
+            var formattedSurcharge = new Intl.NumberFormat('vi-VN').format(surchargeAmount);
+            displayText += ` <br><span class="small text-danger fw-normal fst-italic">(Đã bao gồm ${formattedSurcharge}đ phụ thu cuối tuần)</span>`;
+        }
+
+        totalPriceDisplay.innerHTML = displayText;
+        totalPriceDisplay.classList.remove('text-muted');
+        totalPriceDisplay.classList.add('text-success');
+        
+        // Gán vào input hidden để gửi đi
+        totalPriceInput.value = total;
+
+    } else {
+        // Trường hợp chưa chọn ngày hợp lệ
+        totalPriceDisplay.textContent = "0 VNĐ";
+        totalPriceDisplay.classList.add('text-muted');
+        totalPriceInput.value = 0;
+        if(submitBtn) submitBtn.disabled = false; // Mặc định cứ mở nút
+    }
+}
 
         // Hàm cập nhật hiển thị giá
         function updateTotalDisplay(amount, nights) {

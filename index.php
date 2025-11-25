@@ -280,7 +280,7 @@
                     <div id="introCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="2000" data-bs-pause="false">
                         <div class="carousel-inner rounded shadow-sm overflow-hidden">
                             <?php foreach ($imgs as $i => $src): ?>
-                                <div class="carousel-item<?php echo $i === 0 ? ' active' : ''; ?>" style="background-image:url('<?php echo $src; ?>');"></div>
+                                <div class="carousel-item<?php echo $i === 0 ? ' active' : ''; ?>" data-index="<?php echo $i; ?>" style="background-image:url('<?php echo $src; ?>');"></div>
                             <?php endforeach; ?>
                         </div>
                         <button class="carousel-control-prev" type="button" data-bs-target="#introCarousel" data-bs-slide="prev">
@@ -294,10 +294,10 @@
                     </div>
 
                     <div class="d-none d-md-block position-absolute side-preview side-preview-right">
-                        <img src="<?php echo $img2; ?>" alt="preview" class="img-fluid rounded shadow">
+                        <img id="preview-right" src="<?php echo $img2; ?>" alt="preview" class="img-fluid rounded shadow">
                     </div>
                     <div class="d-none d-md-block position-absolute side-preview side-preview-left">
-                        <img src="<?php echo $img3; ?>" alt="preview" class="img-fluid rounded shadow">
+                        <img id="preview-left" src="<?php echo $img3; ?>" alt="preview" class="img-fluid rounded shadow">
                     </div>
                 </div>
             </div>
@@ -481,6 +481,8 @@
     // --- KHAI BÁO BIẾN PHP SANG JS ---
     const IS_LOGGED_IN = <?php echo json_encode($is_logged_in); ?>;
     const BASE_URL_JS = <?php echo json_encode($base_url_js); ?>;
+    // Carousel images array exported from PHP
+    const CAROUSEL_IMAGES = <?php echo json_encode($imgs); ?>;
 
     let checkInPicker;
     let checkOutPicker;
@@ -623,6 +625,43 @@
             });
         }, { threshold: 0.15 });
         elements.forEach(el => observer.observe(el));
+
+        // --- Carousel side preview sync ---
+        (function(){
+            const carouselEl = document.getElementById('introCarousel');
+            const previewLeft = document.getElementById('preview-left');
+            const previewRight = document.getElementById('preview-right');
+            if (!carouselEl || !previewLeft || !previewRight || !Array.isArray(CAROUSEL_IMAGES)) return;
+
+            const total = CAROUSEL_IMAGES.length;
+            if (total <= 1) {
+                // nothing to preview
+                return;
+            }
+
+            function updatePreviews(activeIndex){
+                const prevIndex = (activeIndex - 1 + total) % total;
+                const nextIndex = (activeIndex + 1) % total;
+                previewLeft.src = CAROUSEL_IMAGES[prevIndex];
+                previewRight.src = CAROUSEL_IMAGES[nextIndex];
+            }
+
+            // initial
+            const activeItem = carouselEl.querySelector('.carousel-item.active');
+            let initialIndex = 0;
+            if (activeItem && typeof activeItem.dataset.index !== 'undefined') {
+                initialIndex = parseInt(activeItem.dataset.index, 10) || 0;
+            }
+            updatePreviews(initialIndex);
+
+            // update after slide
+            carouselEl.addEventListener('slid.bs.carousel', function(){
+                const cur = carouselEl.querySelector('.carousel-item.active');
+                let idx = 0;
+                if (cur && typeof cur.dataset.index !== 'undefined') idx = parseInt(cur.dataset.index, 10) || 0;
+                updatePreviews(idx);
+            });
+        })();
     });
     </script>
 </body>

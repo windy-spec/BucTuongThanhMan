@@ -8,7 +8,7 @@ class AuthController {
     
     private $conn; // Đây sẽ là đối tượng PDO
 
-    // Hàm khởi tạo, nhận kết nối PDO từ config.php
+    // Hàm khởi tạo, nhận kết nối    PDO từ config.php
     public function __construct($pdo_connection) {
         $this->conn = $pdo_connection;
     }

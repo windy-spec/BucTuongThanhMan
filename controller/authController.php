@@ -8,20 +8,19 @@ class AuthController {
     
     private $conn; // Đây sẽ là đối tượng PDO
 
-    // Hàm khởi tạo, nhận kết nối    PDO từ config.php
+    // Hàm khởi tạo, nhận kết nối PDO từ config.php
     public function __construct($pdo_connection) {
         $this->conn = $pdo_connection;
     }
 
     /**
      * ------------------------------------------------
-     * XỬ LÝ ĐĂNG KÝ (REGISTER) - ĐÃ SỬA LƯU SESSION
+     * XỬ LÝ ĐĂNG KÝ (REGISTER)
      * ------------------------------------------------
      */
     public function handleRegister() {
         try {
             if ($_SERVER["REQUEST_METHOD"] != "POST") {
-                // Đây là trường hợp hiếm, nhưng cần bảo vệ
                 $_SESSION['message'] = "Lỗi: Phương thức truy cập không hợp lệ.";
                 header("Location: register.php");
                 exit();
@@ -65,7 +64,7 @@ class AuthController {
                 'password_hash' => $hashed_password
             ]);
 
-            // 4. Thông báo thành công và chuyển hướng về View để hiển thị SWAL
+            // 4. Thông báo thành công
             $_SESSION['message'] = "Đăng ký thành công! Bạn có thể đăng nhập ngay.";
             header("Location: index.php"); 
             exit();
@@ -80,7 +79,7 @@ class AuthController {
 
     /**
      * ------------------------------------------------
-     * XỬ LÝ ĐĂNG NHẬP (LOGIN) - ĐÃ SỬA CHO SWEETALERT
+     * XỬ LÝ ĐĂNG NHẬP (LOGIN) - CÓ REDIRECT THÔNG MINH
      * ------------------------------------------------
      */
     public function handleLogin() {
@@ -116,15 +115,24 @@ class AuthController {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role']; 
 
-                // 5. TÍNH TOÁN URL ĐÍCH VÀ LƯU VÀO SESSION CHO SWEETALERT
-                $target_url = ($user['role'] == 'admin' || $user['role'] == 'staff') 
-                              ? '../admin/dashboard.php' 
-                              : '../user/my_bookings.php';
+                // --- [MỚI] 5. TÍNH TOÁN URL ĐÍCH (Redirect logic) ---
+                // Mặc định:
+                $default_target = ($user['role'] == 'admin' || $user['role'] == 'staff') 
+                                    ? '../admin/dashboard.php' 
+                                    : '../user/my_bookings.php';
+
+                // Kiểm tra xem có cần quay lại trang tìm kiếm không?
+                if (isset($_SESSION['redirect_after_login'])) {
+                    $target_url = $_SESSION['redirect_after_login']; // Lấy link cũ (VD: rooms.php?check_in=...)
+                    unset($_SESSION['redirect_after_login']); // Dùng xong xóa đi
+                } else {
+                    $target_url = $default_target; // Không có thì về trang mặc định
+                }
                 
-                $_SESSION['swal_message'] = "Bạn đã đăng nhập thành công. Hệ thống sẽ chuyển hướng trong giây lát.";
+                $_SESSION['swal_message'] = "Đăng nhập thành công! Đang chuyển hướng...";
                 $_SESSION['swal_target'] = $target_url;
 
-                // CHUYỂN HƯỚNG VỀ TRANG LOGIN VIEW để chạy JavaScript
+                // CHUYỂN HƯỚNG VỀ TRANG LOGIN VIEW để chạy JavaScript SWAL
                 header("Location: index.php");
                 exit();
                 
@@ -136,7 +144,6 @@ class AuthController {
             }
 
         } catch (Exception $e) {
-            // Lỗi hệ thống/CSDL
             $_SESSION['message'] = "Lỗi hệ thống: " . $e->getMessage();
             header("Location: index.php");
             exit();
@@ -159,6 +166,7 @@ class AuthController {
         
         return $errors;
     }
+
     /**
      * ------------------------------------------------
      * HÀM 3: XỬ LÝ QUÊN MẬT KHẨU (FORGOT PASSWORD)
@@ -167,7 +175,7 @@ class AuthController {
     public function forgotPassword($email) {
         try {
             if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                return false; // Email không hợp lệ
+                return false; 
             }
 
             // 1. Tìm người dùng bằng email
@@ -177,7 +185,6 @@ class AuthController {
             $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
 
             if (!$user) {
-                // RẤT QUAN TRỌNG: KHÔNG BÁO LỖI để tránh rò rỉ thông tin
                 return false; 
             }
 
@@ -201,13 +208,12 @@ class AuthController {
             return BASE_URL . "login/reset_password.php?token=" . $token;
 
         } catch (Exception $e) {
-            // Thay vì trả về lỗi SQL, trả về false để đảm bảo bảo mật
             error_log("Forgot Password Error: " . $e->getMessage()); 
             return false;
         }
     }
-    /* HÀM 4: XỬ LÝ ĐẶT LẠI MẬT KHẨU (RESET PASSWORD)
-     */
+
+    /* HÀM 4: XỬ LÝ ĐẶT LẠI MẬT KHẨU (RESET PASSWORD) */
     public function resetPassword($token_plain, $password, $confirm_password) {
         try {
             // 1. Validation cơ bản
@@ -238,7 +244,7 @@ class AuthController {
             // 4. MÃ HÓA MẬT KHẨU MỚI
             $new_hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-            // 5. CẬP NHẬT MẬT KHẨU VÀ XÓA TOKEN (RẤT QUAN TRỌNG VỀ BẢO MẬT)
+            // 5. CẬP NHẬT MẬT KHẨU VÀ XÓA TOKEN
             $sql_update = "UPDATE users 
                            SET password_hash = :new_password, 
                                reset_token_hash = NULL, 

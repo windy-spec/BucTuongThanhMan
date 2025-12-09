@@ -10,20 +10,26 @@ $module = 'rooms';
 include_once(__DIR__ . '/../config.php'); 
 include_once(__DIR__ . '/../controller/RoomController.php'); 
 
-// 4. KHỞI TẠO VÀ LẤY DỮ LIỆU PHÒNG TRỐNG (ĐÃ CHỈNH SỬA)
+// --- [MỚI] TỰ ĐỘNG LƯU VẾT TÌM KIẾM ---
+// Nếu chưa đăng nhập VÀ đang có tham số tìm kiếm (để khi login xong quay lại đúng chỗ này)
+if (!isset($_SESSION['user_id']) && !empty($_GET)) {
+    $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
+}
+// ---------------------------------------
+
+// 4. KHỞI TẠO VÀ LẤY DỮ LIỆU PHÒNG TRỐNG
 $roomController = new RoomController($conn);
 
 // 4a. Lấy tham số tìm kiếm từ URL ($_GET)
-// Dữ liệu từ JS sẽ là YYYY-MM-DD. Lấy trực tiếp.
 $check_in = isset($_GET['check_in']) ? $_GET['check_in'] : null;
 $check_out = isset($_GET['check_out']) ? $_GET['check_out'] : null;
 $max_price = isset($_GET['max_price']) ? (int)$_GET['max_price'] : null;
 
-// Chuyển đổi sang định dạng hiển thị dd/mm/yyyy (để dùng trong HTML data và hiển thị)
+// Chuyển đổi sang định dạng hiển thị dd/mm/yyyy
 $check_in_str = $check_in ? date('d/m/Y', strtotime($check_in)) : null;
 $check_out_str = $check_out ? date('d/m/Y', strtotime($check_out)) : null;
 
-// 4b. Gọi hàm với tham số (sử dụng $check_in, $check_out ở định dạng YYYY-MM-DD)
+// 4b. Gọi hàm tìm kiếm
 $available_rooms = $roomController->getAvailableRooms($check_in, $check_out, $max_price);
 
 // 5. LẤY THÔNG BÁO (nếu có)
@@ -37,7 +43,6 @@ include_once('../layout/user/header_user.php');
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <style>
-        /* Lightweight visual polish for a cleaner, more premium look */
         .room-card { border: 0; border-radius: 12px; overflow: hidden; }
         .room-img { height:160px; background: linear-gradient(135deg,#eef2ff 0%,#ffffff 100%); display:flex; align-items:center; justify-content:center; color:#6c63ff; font-size:42px; }
         .room-badge { position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.6); color:#fff; padding:6px 10px; border-radius:8px; font-size:13px; }
@@ -71,14 +76,12 @@ include_once('../layout/user/header_user.php');
                 <div class="col-md-12 text-center text-md-start">
                     <p class="mb-0 fw-bold">
                         <?php
-                        // Hiển thị thông tin tìm kiếm
                         $search_info = "Phòng trống";
                         if ($check_in_str && $check_out_str) {
                             $search_info .= " từ <span class='text-primary'>{$check_in_str}</span> đến <span class='text-primary'>{$check_out_str}</span>";
                         }
                         if ($max_price) {
                             $formatted_price = number_format($max_price, 0, ',', '.');
-                            // Sửa thành "tối đa"
                             $search_info .= " với giá tối đa <span class='text-danger'>{$formatted_price} VNĐ/đêm</span>";
                         }
                         else {
@@ -125,17 +128,23 @@ include_once('../layout/user/header_user.php');
                                     </div>
 
                                     <div class="text-end">
-                                        <button type="button" 
-                                            class="btn btn-primary btn-book-room"
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#bookingModal"
-                                            data-room-id="<?php echo $room['id']; ?>"
-                                            data-room-number="<?php echo $room['room_number']; ?>"
-                                            data-room-price="<?php echo $room['base_price']; ?>"
-                                            data-check-in="<?php echo htmlspecialchars($check_in_str ?? ''); ?>"
-                                            data-check-out="<?php echo htmlspecialchars($check_out_str ?? ''); ?>"> 
-                                            <i class="fa fa-calendar-plus me-1"></i> Đặt ngay
-                                        </button>
+                                        <?php if (isset($_SESSION['user_id'])): ?>
+                                            <button type="button" 
+                                                class="btn btn-primary btn-book-room"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#bookingModal"
+                                                data-room-id="<?php echo $room['id']; ?>"
+                                                data-room-number="<?php echo $room['room_number']; ?>"
+                                                data-room-price="<?php echo $room['base_price']; ?>"
+                                                data-check-in="<?php echo htmlspecialchars($check_in_str ?? ''); ?>"
+                                                data-check-out="<?php echo htmlspecialchars($check_out_str ?? ''); ?>"> 
+                                                <i class="fa fa-calendar-plus me-1"></i> Đặt ngay
+                                            </button>
+                                        <?php else: ?>
+                                            <button type="button" class="btn btn-primary btn-require-login"> 
+                                                <i class="fa fa-lock me-1"></i> Đặt ngay
+                                            </button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -191,25 +200,43 @@ include_once('../layout/user/header_user.php');
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Khai báo các biến
+        
+        // --- [MỚI] XỬ LÝ NÚT KHI CHƯA ĐĂNG NHẬP ---
+        document.querySelectorAll('.btn-require-login').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                Swal.fire({
+                    title: 'Bạn chưa đăng nhập!',
+                    text: "Vui lòng đăng nhập để tiếp tục đặt phòng này. Hệ thống sẽ giữ lại kết quả tìm kiếm của bạn.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Đăng nhập ngay',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '../index.php'; // Chuyển về trang login
+                    }
+                });
+            });
+        });
+
+        // --- CÁC LOGIC CŨ (MODAL, FLATPICKR, TÍNH TIỀN) ---
         var bookingModalEl = document.getElementById('bookingModal');
         var currentRoomPrice = 0;
         
-        // --- CẤU HÌNH LỊCH (FLATPICKR) ---
         var fpCheckIn = flatpickr("#check_in_date", {
             locale: "vn",
-            dateFormat: "Y-m-d", // Gửi lên server: Năm-Tháng-Ngày
+            dateFormat: "Y-m-d", 
             altInput: true,
-            altFormat: "d/m/Y",  // Hiển thị: Ngày/Tháng/Năm
+            altFormat: "d/m/Y",  
             minDate: "today",
             onChange: function(selectedDates, dateStr, instance) {
-                // Khi chọn ngày đến, ngày đi phải lớn hơn ít nhất 1 ngày
                 if (selectedDates[0]) {
                     var minOutDate = new Date(selectedDates[0]);
                     minOutDate.setDate(minOutDate.getDate() + 1);
                     fpCheckOut.set('minDate', minOutDate);
                     
-                    // Nếu ngày đi hiện tại không hợp lệ, xóa đi
                     if(fpCheckOut.selectedDates[0] && fpCheckOut.selectedDates[0] <= selectedDates[0]){
                          fpCheckOut.clear();
                     }
@@ -229,125 +256,84 @@ include_once('../layout/user/header_user.php');
             }
         });
 
-        // --- SỰ KIỆN KHI MỞ MODAL ---
-        // Sử dụng event của Bootstrap để bắt sự kiện mở
         if (bookingModalEl) {
             bookingModalEl.addEventListener('show.bs.modal', function(event) {
-                // Nút đã bấm để mở modal
                 var button = event.relatedTarget;
-
-                // Lấy dữ liệu từ nút bấm (data-...)
                 var roomId = button.getAttribute('data-room-id');
                 var roomNumber = button.getAttribute('data-room-number');
                 var roomPrice = parseFloat(button.getAttribute('data-room-price'));
-                
-                // Lấy ngày tìm kiếm trước đó (nếu có)
                 var prevCheckIn = button.getAttribute('data-check-in'); 
                 var prevCheckOut = button.getAttribute('data-check-out');
 
-                // Cập nhật giao diện Modal
                 document.getElementById('modal_room_number').textContent = roomNumber;
                 document.getElementById('modal_room_price_display').textContent = new Intl.NumberFormat('vi-VN').format(roomPrice);
                 document.getElementById('modal_room_id').value = roomId;
-                
-                // Lưu giá hiện tại để tính toán
                 currentRoomPrice = roomPrice;
-                
-                // Reset tổng tiền
                 updateTotalDisplay(0, 0);
 
-                // Logic điền ngày (nếu cần thiết, ở đây ta ưu tiên reset để khách chọn lại cho đúng)
-                // Nếu muốn giữ ngày tìm kiếm, bỏ comment 2 dòng dưới:
-                // if(prevCheckIn) fpCheckIn.setDate(prevCheckIn, true); 
-                // if(prevCheckOut) fpCheckOut.setDate(prevCheckOut, true);
+                if(prevCheckIn) fpCheckIn.setDate(prevCheckIn, true); 
+                if(prevCheckOut) fpCheckOut.setDate(prevCheckOut, true);
             });
         }
 
-        // --- HÀM TÍNH TIỀN ---
-        // --- HÀM TÍNH TIỀN (Đã nâng cấp tính năng tăng giá cuối tuần) ---
-// --- HÀM TÍNH TIỀN (Đã nâng cấp: Chặn > 30 ngày + Tăng giá cuối tuần) ---
-function calculateTotalPrice() {
-    var checkInDate = fpCheckIn.selectedDates[0];
-    var checkOutDate = fpCheckOut.selectedDates[0];
-    
-    var totalPriceDisplay = document.getElementById('total_price_calculated');
-    var totalPriceInput = document.getElementById('modal_total_price');
-    
-    // Lấy nút Submit để khóa lại nếu vi phạm ngày
-    var submitBtn = document.querySelector('#bookingModal button[type="submit"]');
-
-    if (checkInDate && checkOutDate && checkOutDate > checkInDate) {
-        // 1. Tính số đêm trước để kiểm tra giới hạn
-        var diffTime = Math.abs(checkOutDate - checkInDate);
-        var nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        // --- KIỂM TRA: NẾU QUÁ 30 NGÀY ---
-        if (nights > 30) {
-            // Hiển thị cảnh báo màu đỏ
-            totalPriceDisplay.innerHTML = '<span class="text-danger fw-bold"><i class="fa fa-phone"></i> Thời gian lưu trú quá 30 ngày. Vui lòng liên hệ trực tiếp để nhận ưu đãi dài hạn!</span>';
-            totalPriceInput.value = 0;
+        // --- HÀM TÍNH TIỀN (Giữ nguyên logic tăng 10% T7, CN) ---
+        function calculateTotalPrice() {
+            var checkInDate = fpCheckIn.selectedDates[0];
+            var checkOutDate = fpCheckOut.selectedDates[0];
             
-            // Khóa nút xác nhận đặt phòng
-            submitBtn.disabled = true; 
-            return; // Dừng hàm, không tính tiền nữa
-        }
+            var totalPriceDisplay = document.getElementById('total_price_calculated');
+            var totalPriceInput = document.getElementById('modal_total_price');
+            var submitBtn = document.querySelector('#bookingModal button[type="submit"]');
 
-        // Nếu hợp lệ (< 30 ngày), mở lại nút Submit
-        submitBtn.disabled = false;
+            if (checkInDate && checkOutDate && checkOutDate > checkInDate) {
+                var diffTime = Math.abs(checkOutDate - checkInDate);
+                var nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        // --- BẮT ĐẦU TÍNH TIỀN (LOGIC CŨ) ---
-        var total = 0;
-        var surchargeCount = 0; // Đếm số đêm cuối tuần
-        
-        // Tạo biến chạy loop
-        var currentDate = new Date(checkInDate);
-        // Loop chạy theo số đêm (nights) đã tính ở trên
-        for (var i = 0; i < nights; i++) {
-            var dayOfWeek = currentDate.getDay(); // 0: CN, 6: T7
-            
-            // Nếu là T7 hoặc CN -> Tăng 10%
-            if (dayOfWeek === 6 || dayOfWeek === 0) {
-                total += currentRoomPrice * 1.1; 
-                surchargeCount++;
+                if (nights > 30) {
+                    totalPriceDisplay.innerHTML = '<span class="text-danger fw-bold"><i class="fa fa-phone"></i> Thời gian lưu trú quá 30 ngày. Vui lòng liên hệ trực tiếp để nhận ưu đãi dài hạn!</span>';
+                    totalPriceInput.value = 0;
+                    submitBtn.disabled = true; 
+                    return; 
+                }
+
+                submitBtn.disabled = false;
+                var total = 0;
+                var surchargeCount = 0; 
+                var currentDate = new Date(checkInDate);
+                
+                for (var i = 0; i < nights; i++) {
+                    var dayOfWeek = currentDate.getDay(); // 0: CN, 6: T7
+                    if (dayOfWeek === 6 || dayOfWeek === 0) {
+                        total += currentRoomPrice * 1.1; 
+                        surchargeCount++;
+                    } else {
+                        total += currentRoomPrice;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+
+                total = Math.round(total);
+                var displayText = new Intl.NumberFormat('vi-VN').format(total) + " VNĐ (" + nights + " đêm)";
+                
+                if (surchargeCount > 0) {
+                    var surchargeAmount = (currentRoomPrice * 0.1) * surchargeCount;
+                    var formattedSurcharge = new Intl.NumberFormat('vi-VN').format(surchargeAmount);
+                    displayText += ` <br><span class="small text-danger fw-normal fst-italic">(Đã bao gồm ${formattedSurcharge}đ phụ thu cuối tuần)</span>`;
+                }
+
+                totalPriceDisplay.innerHTML = displayText;
+                totalPriceDisplay.classList.remove('text-muted');
+                totalPriceDisplay.classList.add('text-success');
+                totalPriceInput.value = total;
+
             } else {
-                total += currentRoomPrice;
+                totalPriceDisplay.textContent = "0 VNĐ";
+                totalPriceDisplay.classList.add('text-muted');
+                totalPriceInput.value = 0;
+                if(submitBtn) submitBtn.disabled = false;
             }
-            
-            // Tăng ngày lên để check ngày tiếp theo
-            currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // Làm tròn tổng tiền
-        total = Math.round(total);
-
-        // --- HIỂN THỊ KẾT QUẢ ---
-        // Tạo text hiển thị cơ bản
-        var displayText = new Intl.NumberFormat('vi-VN').format(total) + " VNĐ (" + nights + " đêm)";
-        
-        // Nếu có phụ thu cuối tuần, thêm dòng chú thích nhỏ
-        if (surchargeCount > 0) {
-            var surchargeAmount = (currentRoomPrice * 0.1) * surchargeCount;
-            var formattedSurcharge = new Intl.NumberFormat('vi-VN').format(surchargeAmount);
-            displayText += ` <br><span class="small text-danger fw-normal fst-italic">(Đã bao gồm ${formattedSurcharge}đ phụ thu cuối tuần)</span>`;
-        }
-
-        totalPriceDisplay.innerHTML = displayText;
-        totalPriceDisplay.classList.remove('text-muted');
-        totalPriceDisplay.classList.add('text-success');
-        
-        // Gán vào input hidden để gửi đi
-        totalPriceInput.value = total;
-
-    } else {
-        // Trường hợp chưa chọn ngày hợp lệ
-        totalPriceDisplay.textContent = "0 VNĐ";
-        totalPriceDisplay.classList.add('text-muted');
-        totalPriceInput.value = 0;
-        if(submitBtn) submitBtn.disabled = false; // Mặc định cứ mở nút
-    }
-}
-
-        // Hàm cập nhật hiển thị giá
         function updateTotalDisplay(amount, nights) {
             var displayEl = document.getElementById('total_price_calculated');
             var inputEl = document.getElementById('modal_total_price');

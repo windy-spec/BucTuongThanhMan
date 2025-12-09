@@ -83,7 +83,6 @@ class AuthController {
      * ------------------------------------------------
      */
     public function handleLogin() {
-        
         try {
             if ($_SERVER["REQUEST_METHOD"] != "POST") {
                 $_SESSION['message'] = "Lỗi: Phương thức truy cập không hợp lệ.";
@@ -101,7 +100,7 @@ class AuthController {
                 exit();
             }
 
-            // 2. Tìm người dùng trong CSDL
+            // 2. Tìm người dùng
             $sql_find = "SELECT * FROM users WHERE username = :username";
             $stmt_find = $this->conn->prepare($sql_find);
             $stmt_find->execute(['username' => $username]);
@@ -110,34 +109,35 @@ class AuthController {
             // 3. Xác thực mật khẩu
             if ($user && password_verify($password, $user['password_hash'])) {
                 
-                // 4. Đăng nhập thành công -> Lưu Session
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role']; 
 
-                // --- [MỚI] 5. TÍNH TOÁN URL ĐÍCH (Redirect logic) ---
-                // Mặc định:
+                // --- 4. TÍNH TOÁN URL ĐÍCH (DÙNG COOKIE) ---
+                
+                // Mặc định
                 $default_target = ($user['role'] == 'admin' || $user['role'] == 'staff') 
                                     ? '../admin/dashboard.php' 
                                     : '../user/my_bookings.php';
 
-                // Kiểm tra xem có cần quay lại trang tìm kiếm không?
-                if (isset($_SESSION['redirect_after_login'])) {
-                    $target_url = $_SESSION['redirect_after_login']; // Lấy link cũ (VD: rooms.php?check_in=...)
-                    unset($_SESSION['redirect_after_login']); // Dùng xong xóa đi
+                // KIỂM TRA COOKIE: Đây là cái "chìa khóa" bất bại
+                if (isset($_COOKIE['redirect_custom'])) {
+                    // Lấy link từ cookie ra
+                    $target_url = urldecode($_COOKIE['redirect_custom']);
+                    
+                    // Dùng xong thì XÓA NGAY cookie để lần sau không bị nhảy linh tinh
+                    setcookie("redirect_custom", "", time() - 3600, "/"); 
                 } else {
-                    $target_url = $default_target; // Không có thì về trang mặc định
+                    $target_url = $default_target;
                 }
                 
                 $_SESSION['swal_message'] = "Đăng nhập thành công! Đang chuyển hướng...";
                 $_SESSION['swal_target'] = $target_url;
 
-                // CHUYỂN HƯỚNG VỀ TRANG LOGIN VIEW để chạy JavaScript SWAL
-                header("Location: index.php");
+                header("Location: index.php"); // Về lại login/index.php để hiện thông báo rồi redirect
                 exit();
                 
             } else {
-                // Sai tên đăng nhập hoặc mật khẩu
                 $_SESSION['message'] = "Sai tên đăng nhập hoặc mật khẩu.";
                 header("Location: index.php");
                 exit();

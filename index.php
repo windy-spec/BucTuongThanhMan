@@ -524,27 +524,26 @@
     }
     
     // --- HÀM TÌM KIẾM CHÍNH (ĐÃ FIX LỖI HIỂN THỊ KÌ KÌ) ---
+    // --- HÀM TÌM KIẾM CHÍNH (ĐÃ NÂNG CẤP: LƯU VẾT KHI CHƯA LOGIN) ---
     function searchRoomsByMaxPrice() {
-        if (!IS_LOGGED_IN) {
-            checkLoginAndRedirect(); 
-            return;
-        }
-        
         const resultDisplay = document.getElementById('resultDisplay');
         
-        // 1. Lấy giá trị và kiểm tra (sử dụng selectedDates để đảm bảo logic ngày)
+        // 1. Kiểm tra dữ liệu
+        if (!checkInPicker || !checkInPicker.selectedDates[0] || !checkOutPicker || !checkOutPicker.selectedDates[0]) {
+             resultDisplay.innerHTML = '<span class="text-danger">Vui lòng chọn ngày nhận và trả phòng.</span>';
+             return;
+        }
+
         const date1 = checkInPicker.selectedDates[0];
         const date2 = checkOutPicker.selectedDates[0];
-        
         const totalPriceDisplay = document.getElementById('estimatedPrice').value;
         const totalPriceClean = parseFloat(totalPriceDisplay.replace(/\./g, ''));
         
-        if (!date1 || !date2 || isNaN(totalPriceClean) || totalPriceClean <= 0) {
-            resultDisplay.innerHTML = '<span class="text-danger">Vui lòng nhập đầy đủ Ngày nhận, Ngày trả và Tổng kinh phí dự tính hợp lệ.</span>';
+        if (isNaN(totalPriceClean) || totalPriceClean <= 0) {
+            resultDisplay.innerHTML = '<span class="text-danger">Vui lòng nhập ngân sách dự tính.</span>';
             return;
         }
 
-        // Tính số đêm
         const timeDiff = date2.getTime() - date1.getTime();
         const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
         
@@ -553,32 +552,42 @@
             return;
         }
 
-        // 2. TÍNH TOÁN VÀ ĐỊNH DẠNG:
-        // Dùng Math.floor để đảm bảo giá tối đa/đêm là số nguyên
         const estimatedPricePerNight = Math.floor(totalPriceClean / dayDiff);
-
-        // Định dạng giá/đêm để hiển thị
-        const formattedPricePerNight = estimatedPricePerNight.toLocaleString('vi-VN', { 
-            style: 'currency', 
-            currency: 'VND',
-            minimumFractionDigits: 0
-        }).replace('₫', ' VNĐ'); 
         
-        // Định dạng ngày cho hiển thị (DD/MM/YYYY)
-        const checkInDisplay = date1.toLocaleDateString('vi-VN');
-        const checkOutDisplay = date2.toLocaleDateString('vi-VN');
-
-        // 3. Cập nhật hiển thị kết quả gọn gàng (KHÔNG CHUYỂN HƯỚNG TỚI ROOMS.PHP)
-        resultDisplay.innerHTML = `
-            <span class="text-white">Phòng trống từ ${checkInDisplay} đến ${checkOutDisplay} với giá &le; ${formattedPricePerNight}/đêm.</span>
-        `;
+        // 2. TẠO URL ĐÍCH (Dùng BASE_URL_JS để tạo đường dẫn tuyệt đối)
+        const checkInURL = checkInPicker.input.value;
+        const checkOutURL = checkOutPicker.input.value;
         
-        // 4. CHUYỂN HƯỚNG TÌM KIẾM
-        const checkInURL = checkInPicker.input.value; // YYYY-MM-DD
-        const checkOutURL = checkOutPicker.input.value; // YYYY-MM-DD
+        // 👇👇👇 SỬA Ở ĐÂY: Thêm BASE_URL_JS vào đầu 👇👇👇
+        // Kết quả sẽ là: http://localhost/QLKS/user/rooms.php?... (Tuyệt đối, không sợ sai folder)
+        const targetUrl = BASE_URL_JS + `user/rooms.php?check_in=${checkInURL}&check_out=${checkOutURL}&max_price=${estimatedPricePerNight}`;
 
-        // Sau khi hiển thị thông báo, mới chuyển hướng để thực hiện lọc phòng
-        window.location.href = `user/rooms.php?check_in=${checkInURL}&check_out=${checkOutURL}&max_price=${estimatedPricePerNight}`;
+        // 3. KIỂM TRA ĐĂNG NHẬP & LƯU COOKIE
+        if (!IS_LOGGED_IN) {
+            Swal.fire({
+                title: 'Bạn chưa đăng nhập!',
+                text: "Vui lòng đăng nhập để xem kết quả tìm kiếm chi tiết.",
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Đăng nhập ngay',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Lưu URL tuyệt đối vào Cookie
+                    var encodedUrl = encodeURIComponent(targetUrl);
+                    document.cookie = "redirect_custom=" + encodedUrl + "; path=/; max-age=3600";
+                    
+                    // Chuyển hướng sang trang Login (Dùng đường dẫn tuyệt đối luôn cho chắc)
+                    window.location.href = BASE_URL_JS + 'login/index.php'; 
+                }
+            });
+            return; 
+        }
+
+        // 4. ĐÃ ĐĂNG NHẬP -> CHUYỂN HƯỚNG LUÔN
+        window.location.href = targetUrl;
     }
 
     // --- KHỞI TẠO FLATPICKR VÀ GẮN EVENT ---

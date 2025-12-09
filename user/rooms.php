@@ -10,13 +10,6 @@ $module = 'rooms';
 include_once(__DIR__ . '/../config.php'); 
 include_once(__DIR__ . '/../controller/RoomController.php'); 
 
-// --- [MỚI] TỰ ĐỘNG LƯU VẾT TÌM KIẾM ---
-// Nếu chưa đăng nhập VÀ đang có tham số tìm kiếm (để khi login xong quay lại đúng chỗ này)
-if (!isset($_SESSION['user_id']) && !empty($_GET)) {
-    $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
-}
-// ---------------------------------------
-
 // 4. KHỞI TẠO VÀ LẤY DỮ LIỆU PHÒNG TRỐNG
 $roomController = new RoomController($conn);
 
@@ -193,7 +186,6 @@ include_once('../layout/user/header_user.php');
     </div>
 
    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -201,7 +193,7 @@ include_once('../layout/user/header_user.php');
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         
-        // --- [MỚI] XỬ LÝ NÚT KHI CHƯA ĐĂNG NHẬP ---
+        // --- [CÁCH MỚI - DÙNG COOKIE] XỬ LÝ NÚT KHI CHƯA ĐĂNG NHẬP ---
         document.querySelectorAll('.btn-require-login').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 Swal.fire({
@@ -215,14 +207,21 @@ include_once('../layout/user/header_user.php');
                     cancelButtonText: 'Hủy'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = '../index.php'; // Chuyển về trang login
+                        // 1. Lưu link hiện tại vào COOKIE (Tồn tại trong 1 tiếng, áp dụng cho toàn bộ domain path=/)
+                        var currentUrl = encodeURIComponent(window.location.href);
+                        document.cookie = "redirect_custom=" + currentUrl + "; path=/; max-age=3600";
+                        
+                        // 2. Chuyển hướng thẳng đến trang LOGIN (Sửa đúng đường dẫn vào thư mục login)
+                        // Giả sử file này đang ở /user/rooms.php thì ra ngoài 1 cấp (..) rồi vào login
+                        window.location.href = '../login/index.php'; 
                     }
                 });
             });
         });
 
-        // --- CÁC LOGIC CŨ (MODAL, FLATPICKR, TÍNH TIỀN) ---
+        // --- CÁC LOGIC CŨ GIỮ NGUYÊN (Flatpickr, Booking Modal...) ---
         var bookingModalEl = document.getElementById('bookingModal');
+        // ... (Giữ nguyên phần còn lại của script cũ) ...
         var currentRoomPrice = 0;
         
         var fpCheckIn = flatpickr("#check_in_date", {
@@ -236,7 +235,6 @@ include_once('../layout/user/header_user.php');
                     var minOutDate = new Date(selectedDates[0]);
                     minOutDate.setDate(minOutDate.getDate() + 1);
                     fpCheckOut.set('minDate', minOutDate);
-                    
                     if(fpCheckOut.selectedDates[0] && fpCheckOut.selectedDates[0] <= selectedDates[0]){
                          fpCheckOut.clear();
                     }
@@ -276,11 +274,9 @@ include_once('../layout/user/header_user.php');
             });
         }
 
-        // --- HÀM TÍNH TIỀN (Giữ nguyên logic tăng 10% T7, CN) ---
         function calculateTotalPrice() {
             var checkInDate = fpCheckIn.selectedDates[0];
             var checkOutDate = fpCheckOut.selectedDates[0];
-            
             var totalPriceDisplay = document.getElementById('total_price_calculated');
             var totalPriceInput = document.getElementById('modal_total_price');
             var submitBtn = document.querySelector('#bookingModal button[type="submit"]');
@@ -295,14 +291,12 @@ include_once('../layout/user/header_user.php');
                     submitBtn.disabled = true; 
                     return; 
                 }
-
                 submitBtn.disabled = false;
                 var total = 0;
                 var surchargeCount = 0; 
                 var currentDate = new Date(checkInDate);
-                
                 for (var i = 0; i < nights; i++) {
-                    var dayOfWeek = currentDate.getDay(); // 0: CN, 6: T7
+                    var dayOfWeek = currentDate.getDay(); 
                     if (dayOfWeek === 6 || dayOfWeek === 0) {
                         total += currentRoomPrice * 1.1; 
                         surchargeCount++;
@@ -311,21 +305,17 @@ include_once('../layout/user/header_user.php');
                     }
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
-
                 total = Math.round(total);
                 var displayText = new Intl.NumberFormat('vi-VN').format(total) + " VNĐ (" + nights + " đêm)";
-                
                 if (surchargeCount > 0) {
                     var surchargeAmount = (currentRoomPrice * 0.1) * surchargeCount;
                     var formattedSurcharge = new Intl.NumberFormat('vi-VN').format(surchargeAmount);
                     displayText += ` <br><span class="small text-danger fw-normal fst-italic">(Đã bao gồm ${formattedSurcharge}đ phụ thu cuối tuần)</span>`;
                 }
-
                 totalPriceDisplay.innerHTML = displayText;
                 totalPriceDisplay.classList.remove('text-muted');
                 totalPriceDisplay.classList.add('text-success');
                 totalPriceInput.value = total;
-
             } else {
                 totalPriceDisplay.textContent = "0 VNĐ";
                 totalPriceDisplay.classList.add('text-muted');
@@ -337,7 +327,6 @@ include_once('../layout/user/header_user.php');
         function updateTotalDisplay(amount, nights) {
             var displayEl = document.getElementById('total_price_calculated');
             var inputEl = document.getElementById('modal_total_price');
-            
             if(amount > 0){
                 displayEl.textContent = new Intl.NumberFormat('vi-VN').format(amount) + " VNĐ (" + nights + " đêm)";
                 displayEl.classList.remove('text-muted');

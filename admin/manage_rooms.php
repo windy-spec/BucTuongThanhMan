@@ -2,7 +2,7 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-// Tạm thời dùng session_start() để kiểm tra Admin
+// dùng session_start() để kiểm tra Admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
      header("Location: ../login/index.php"); 
      exit();

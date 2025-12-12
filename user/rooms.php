@@ -64,7 +64,6 @@ include_once('../layout/user/header_user.php');
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
-
             <div class="row align-items-center mb-4">
                 <div class="col-md-12 text-center text-md-start">
                     <p class="mb-0 fw-bold">
@@ -268,7 +267,6 @@ include_once('../layout/user/header_user.php');
                 document.getElementById('modal_room_id').value = roomId;
                 currentRoomPrice = roomPrice;
                 updateTotalDisplay(0, 0);
-
                 if(prevCheckIn) fpCheckIn.setDate(prevCheckIn, true); 
                 if(prevCheckOut) fpCheckOut.setDate(prevCheckOut, true);
             });
@@ -280,7 +278,6 @@ include_once('../layout/user/header_user.php');
             var totalPriceDisplay = document.getElementById('total_price_calculated');
             var totalPriceInput = document.getElementById('modal_total_price');
             var submitBtn = document.querySelector('#bookingModal button[type="submit"]');
-
             if (checkInDate && checkOutDate && checkOutDate > checkInDate) {
                 var diffTime = Math.abs(checkOutDate - checkInDate);
                 var nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

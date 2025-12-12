@@ -1,5 +1,5 @@
 <?php
-// BƯỚC 1: BẮT BUỘC KHỞI ĐỘNG SESSION TRƯỚC KHI TRUY CẬP BẤT KỲ DỮ LIỆU NÀO
+// BƯỚC 1: KHỞI ĐỘNG SESSION TRƯỚC KHI TRUY CẬP BẤT KỲ DỮ LIỆU NÀO
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }

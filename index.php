@@ -1,15 +1,9 @@
 <?php
-    // Luôn gọi config.php đầu tiên
     include_once('config.php');
-
-    // Logic kiểm tra đăng nhập (Giả định biến $_SESSION['user_id'] hoặc tương tự tồn tại khi đăng nhập)
-    // Tạm thời khởi động session để kiểm tra trạng thái
     if (session_status() == PHP_SESSION_NONE) {
         session_start();
     }
     $is_logged_in = isset($_SESSION['user_id']) && $_SESSION['user_id'];
-    
-    // Lấy BASE_URL cho việc chuyển hướng
     $base_url_js = BASE_URL; 
 ?>
 <!DOCTYPE html>
@@ -27,7 +21,6 @@
     <style>
         /* Navbar */
         .navbar-brand { font-weight: 600; }
-        
         /* Hero Section (Theme: Hotel) */
         .hero-section {
             background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?fit=crop&w=1920&q=80');
@@ -523,8 +516,7 @@
         input.value = formatted;
     }
     
-    // --- HÀM TÌM KIẾM CHÍNH (ĐÃ FIX LỖI HIỂN THỊ KÌ KÌ) ---
-    // --- HÀM TÌM KIẾM CHÍNH (ĐÃ NÂNG CẤP: LƯU VẾT KHI CHƯA LOGIN) ---
+    // --- HÀM TÌM KIẾM CHÍNH ---
     function searchRoomsByMaxPrice() {
         const resultDisplay = document.getElementById('resultDisplay');
         
@@ -557,9 +549,6 @@
         // 2. TẠO URL ĐÍCH (Dùng BASE_URL_JS để tạo đường dẫn tuyệt đối)
         const checkInURL = checkInPicker.input.value;
         const checkOutURL = checkOutPicker.input.value;
-        
-        // 👇👇👇 SỬA Ở ĐÂY: Thêm BASE_URL_JS vào đầu 👇👇👇
-        // Kết quả sẽ là: http://localhost/QLKS/user/rooms.php?... (Tuyệt đối, không sợ sai folder)
         const targetUrl = BASE_URL_JS + `user/rooms.php?check_in=${checkInURL}&check_out=${checkOutURL}&max_price=${estimatedPricePerNight}`;
 
         // 3. KIỂM TRA ĐĂNG NHẬP & LƯU COOKIE

@@ -1,5 +1,4 @@
 <?php
-// File: admin/auth_admin.php
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -14,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 // 2. Kiểm tra xem có phải là Admin không
 if ($_SESSION['role'] != 'admin') {
     // Nếu không phải admin, báo lỗi và dừng lại
-    http_response_code(403); // Lỗi 403 Forbidden
+    http_response_code(403);
     die("<h1>Lỗi 403: Truy cập bị cấm</h1><p>Bạn không có quyền truy cập trang này.</p>");
 }
 

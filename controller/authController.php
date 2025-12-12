@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 class AuthController {
     
-    private $conn; // Đây sẽ là đối tượng PDO
+    private $conn; 
 
     // Hàm khởi tạo, nhận kết nối PDO từ config.php
     public function __construct($pdo_connection) {

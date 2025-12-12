@@ -32,7 +32,7 @@ $room_status_map = $bookingController->getRoomStatusMap();
 // BƯỚC 5: GỌI HEADER (Sử dụng đường dẫn mới)
 include_once('../layout/admin/header_admin.php');
 
-// Hàm trợ giúp để ánh xạ trạng thái sang CSS và Icon (Giúp code HTML gọn gàng hơn)
+// Hàm trợ giúp để ánh xạ trạng thái sang CSS và Icon
 function get_status_data($status) {
     $map = [
         'available' => ['class' => 'room-available', 'icon' => 'fa-check', 'text' => 'Trống'],
@@ -58,7 +58,6 @@ function get_booking_badge_class($status) {
 ?>
 
 <style>
-/* 🎨 CSS CỦA BẠN ĐỂ HIỂN THỊ SƠ ĐỒ PHÒNG */
 /* Đã thêm màu mặc định cho trạng thái không xác định */
     .room-grid {
         display: grid;

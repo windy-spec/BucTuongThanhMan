@@ -1,14 +1,11 @@
 <?php
-// File: controller/BookingController.php
-
-// Bật hiển thị lỗi (Chỉ dùng khi dev, nên tắt khi production)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 class BookingController {
     
-    private $conn; // Đối tượng PDO
+    private $conn; 
 
     public function __construct($pdo_connection) {
         $this->conn = $pdo_connection;
@@ -16,21 +13,8 @@ class BookingController {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
-
-        // --- [MỚI] TỰ ĐỘNG QUÉT VÀ HỦY ĐƠN QUÁ HẠN KHI KHỞI TẠO ---
-        // Mỗi lần Controller được gọi, nó sẽ kiểm tra xem có đơn nào cần hủy không
         $this->autoCancelOverdueBookings();
     }
-
-    /**
-     * ===============================================
-     * [LOGIC MỚI] TỰ ĐỘNG HỦY ĐƠN (Auto Cancel)
-     * ===============================================
-     * Điều kiện hủy:
-     * 1. Trạng thái 'pending' (chưa thanh toán)
-     * 2. Thời gian lưu trú > 15 ngày
-     * 3. Đã tạo quá 24 giờ trước
-     */
     private function autoCancelOverdueBookings() {
         try {
             // 1. Tìm các đơn thỏa mãn điều kiện hủy
@@ -52,13 +36,11 @@ class BookingController {
                     $cancelSql = "UPDATE bookings SET status = 'cancelled' WHERE id = :id";
                     $cancelStmt = $this->conn->prepare($cancelSql);
                     $cancelStmt->execute(['id' => $booking['id']]);
-
                     // Quan trọng: Cập nhật trạng thái phòng thành 'available'
                     $this->updateRoomStatusAfterBooking($booking['room_id'], 'available');
                 }
             }
         } catch (Exception $e) {
-            // Ghi log lỗi vào file hệ thống thay vì hiện ra màn hình để tránh làm phiền người dùng
             error_log("Auto Cancel Error: " . $e->getMessage());
         }
     }
@@ -76,10 +58,10 @@ class BookingController {
 
    /**
      * ===============================================
-     * HÀM 1: TẠO ĐƠN ĐẶT PHÒNG (ĐÃ CẬP NHẬT LOGIC TĂNG 10% CUỐI TUẦN)
+     * HÀM 1: TẠO ĐƠN ĐẶT PHÒNG 
      * ===============================================
      */
-    public function createBooking($room_id, $check_in, $check_out) { // Đã bỏ tham số $total_price
+    public function createBooking($room_id, $check_in, $check_out) { 
         try {
             // 1. Kiểm tra đăng nhập
             if (!isset($_SESSION['user_id'])) {
@@ -88,7 +70,6 @@ class BookingController {
             if (empty($room_id) || empty($check_in) || empty($check_out)) {
                 throw new Exception("Vui lòng nhập đầy đủ thông tin.");
             }
-
             // 2. Lấy giá gốc của phòng từ Database
             // Sửa 'price' thành 'base_price' (hoặc tên đúng trong bảng rooms của bạn)
            $sql = "SELECT rt.base_price 
@@ -117,11 +98,9 @@ class BookingController {
 
             $total_calculated = 0;
             $curr_date = clone $start_date;
-
             // Vòng lặp qua từng ngày để cộng tiền
             while ($curr_date < $end_date) {
                 $day_of_week = $curr_date->format('N'); // 1 (Thứ 2) -> 7 (CN)
-                
                 // Nếu là Thứ 7 (6) hoặc CN (7) thì tăng 10%
                 if ($day_of_week == 6 || $day_of_week == 7) {
                     $total_calculated += $base_price * 1.1; 
@@ -240,17 +219,11 @@ class BookingController {
         if (!$booking) {
             return "Lỗi: Không tìm thấy đơn đặt phòng.";
         }
-
-        // --- KIỂM TRA KỸ ROOM ID ---
-        // Đảm bảo lấy đúng tên cột (phòng trường hợp bạn đặt tên khác trong DB)
         $room_id = $booking['room_id'] ?? null; 
         
         if (!$room_id) {
-            // Nếu null, thử tìm các biến thể khác hoặc báo lỗi
-            // (Đoạn này giúp debug nếu bạn đặt tên cột là RoomId hay Room_ID)
             error_log("Lỗi: Không lấy được room_id từ đơn hàng $booking_id");
         }
-
         // 2. Thực hiện xóa (Logic phân quyền)
         if ($role == 'admin' || $role == 'staff') {
             $sql = "DELETE FROM bookings WHERE id = :booking_id";

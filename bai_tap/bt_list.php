@@ -2,7 +2,6 @@
 // --- PHẦN LOGIC SIÊU CẤP ---
 
 // 1. Định nghĩa thư mục "gốc" (base) mà tụi mình cho phép xem
-// __DIR__ là thư mục hiện tại (tức là /bai_tap/)
 $base_dir = __DIR__;
 
 // 2. Lấy đường dẫn "con" từ URL (?path=...)

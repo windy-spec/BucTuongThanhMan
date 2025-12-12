@@ -1,8 +1,3 @@
-/* =======================================
-   STYLE.CSS - CÁC ĐỊNH DẠNG TÙY CHỈNH
-   Project: QLKS
-   ======================================= */
-
 /* 1. ĐỊNH DẠNG CHUNG */
 body {
   background-color: #f7f9fc; /* Màu nền nhẹ cho toàn bộ trang */
@@ -35,10 +30,3 @@ body {
 }
 
 /* 5. TÙY CHỈNH THEO TRẠNG THÁI (Nếu cần ghi đè CSS của dashboard.php) */
-/* Nếu bạn muốn chuyển CSS trong <style> của dashboard.php ra đây, hãy đặt chúng ở dưới */
-
-/*
-.room-available { background-color: #28a945; }
-.room-occupied { background-color: #dc3545; }
-...
-*/
